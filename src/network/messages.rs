@@ -3,6 +3,7 @@ use serde_derive::{Deserialize, Serialize};
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum UserMessage {
+    NoUpdates,
     QueueUpRequest(QueueUpRequest),
 }
 
@@ -10,6 +11,12 @@ pub enum UserMessage {
 #[serde(rename_all = "camelCase")]
 pub enum ServerMessage {
     QueueUpResponse(Result<QueueUpResponse, String>),
+    ServerPushUpdate(Option<ServerPushUpdate>),
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub enum ServerPushUpdate {
     PotentialMatchUpdate(Result<PotentialMatchUpdate, String>),
 }
 
