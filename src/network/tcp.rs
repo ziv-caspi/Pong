@@ -3,20 +3,17 @@ use crate::{
     network::{initializer::Initializer, messages::UserMessage},
 };
 use anyhow::Result;
-use crossbeam::channel::Receiver;
+
 use std::{
-    io::{BufRead, BufReader, Read, Write},
+    io::{BufRead, BufReader, Write},
     net::{TcpListener, TcpStream},
     thread,
-    time::Duration,
 };
 
-use super::messages::{PotentialMatchUpdate, QueueUpResponse, ServerMessage, ServerPushUpdate};
+use super::session::ClientSession;
 
 pub fn start() {
-    let user_example = UserMessage::QueueUpRequest(crate::network::messages::QueueUpRequest {
-        nickname: String::from("I am ziv"),
-    });
+    let user_example = UserMessage::NoUpdates;
     let s = serde_json::to_string(&user_example).unwrap();
     println!("{:?}", s);
 
@@ -42,45 +39,13 @@ pub fn start() {
 // the protocol is that every loop the client will send a message to the server, it could be a request, or a NoUpdates message.
 // NoUpdates message is the servers chance to send push updates.
 fn handle_connection(mut stream: &mut TcpStream, api: QueueApi<RpcQueue>) -> Result<()> {
+    let mut client_session = ClientSession::new(&api);
     loop {
         let user_message = get_user_message(&mut stream)?;
-        let response = handler_user_message(&api, user_message);
+        let response = client_session.process_message(user_message);
         let json = serde_json::to_string(&response).unwrap();
         stream.write_all(json.as_bytes())?
     }
-}
-
-fn handler_user_message(queue_api: &QueueApi<RpcQueue>, message: UserMessage) -> ServerMessage {
-    match message {
-        UserMessage::QueueUpRequest(request) => {
-            let result = match queue_api.register_to_queue(&request.nickname) {
-                Ok(user) => Ok(QueueUpResponse { id: user.id }),
-                Err(e) => Err(e.to_string()),
-            };
-            return ServerMessage::QueueUpResponse(result);
-        }
-        UserMessage::NoUpdates => {
-            if let Some(m) = get_last_message(&queue_api.new_match_reciever) {
-                return ServerMessage::ServerPushUpdate(Some(
-                    ServerPushUpdate::PotentialMatchUpdate(PotentialMatchUpdate {
-                        opoonents_ids: m.player_ids,
-                    }),
-                ));
-            }
-            return ServerMessage::ServerPushUpdate(None);
-        }
-    };
-}
-
-fn get_last_message<T>(reciever: &Receiver<T>) -> Option<T> {
-    let mut message = None;
-    while !reciever.is_empty() {
-        if let Ok(m) = reciever.recv() {
-            message = Some(m);
-        }
-    }
-
-    message
 }
 
 fn get_user_message(stream: &mut TcpStream) -> Result<UserMessage> {

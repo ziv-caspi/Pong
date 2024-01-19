@@ -7,17 +7,29 @@ def connect(port):
    sock.connect(('127.0.0.1', port))
    return sock
 
-request = {
+def prepare_request(req):
+   return bytes(json.dumps(req), 'utf-8') + b'\n'
+
+def parse_response(resp):
+   return json.loads(resp)
+
+queue_up_request = {
    "queueUpRequest": {
       "nickname": "ziv caspi"
    }
 }
 
+no_updates_request = 'noUpdates'
 
-b = bytes(json.dumps(request), 'utf-8') + b'\n'
-print(type(b),b)
+
 s = connect(7878)
 time.sleep(3)
-# s.send(b)
+s.send(prepare_request(queue_up_request))
 response = s.recv(1024)
 print('response:', response)
+while True:
+   s.send(prepare_request(no_updates_request))
+   response = s.recv(1024)
+   parsed = parse_response(response)
+   if parsed['serverPushUpdate']:
+      print('response:', response)
