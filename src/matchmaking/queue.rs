@@ -15,4 +15,19 @@ impl InMemoryPendingPlayersQueue {
         println!("added user. size: {:?}", self.queue.size());
         result
     }
+
+    pub fn find_match(&mut self, count: usize) -> Option<Vec<User>> {
+        if self.queue.size() < count {
+            return None;
+        }
+
+        let mut players: Vec<User> = vec![];
+        for _ in 0..count {
+            if let Ok(user) = self.queue.remove() {
+                players.push(user);
+            }
+        }
+
+        Some(players)
+    }
 }

@@ -17,7 +17,7 @@ pub enum ServerMessage {
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum ServerPushUpdate {
-    PotentialMatchUpdate(Result<PotentialMatchUpdate, String>),
+    PotentialMatchUpdate(PotentialMatchUpdate),
 }
 
 #[derive(Deserialize, Serialize, Debug)]

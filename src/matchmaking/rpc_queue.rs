@@ -8,6 +8,7 @@ use anyhow::anyhow;
 #[derive(Clone)]
 enum QueueMethod {
     Add(RpcMessage<User, bool>),
+    FindMatch(RpcMessage<usize, Option<Vec<User>>>),
 }
 
 #[derive(Clone)]
@@ -35,6 +36,11 @@ impl RpcQueue {
             QueueMethod::Add(requset) => {
                 _ = requset.response_channel.send(queue.add(requset.message));
             }
+            QueueMethod::FindMatch(request) => {
+                _ = request
+                    .response_channel
+                    .send(queue.find_match(request.message));
+            }
         }
     }
 }
@@ -47,5 +53,11 @@ impl PendingPlayersQueue for RpcQueue {
             true => Ok(()),
             false => Err(anyhow!("could not add")),
         }
+    }
+
+    fn find_match(&self) -> anyhow::Result<Option<Vec<User>>> {
+        let (message, recv) = RpcMessage::<usize, Option<Vec<User>>>::new(2);
+        let response = self.api.call(QueueMethod::FindMatch(message), recv)?;
+        Ok(response)
     }
 }

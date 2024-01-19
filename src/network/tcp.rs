@@ -3,6 +3,7 @@ use crate::{
     network::{initializer::Initializer, messages::UserMessage},
 };
 use anyhow::Result;
+use crossbeam::channel::Receiver;
 use std::{
     io::{BufRead, BufReader, Read, Write},
     net::{TcpListener, TcpStream},
@@ -10,7 +11,7 @@ use std::{
     time::Duration,
 };
 
-use super::messages::{QueueUpResponse, ServerMessage};
+use super::messages::{PotentialMatchUpdate, QueueUpResponse, ServerMessage, ServerPushUpdate};
 
 pub fn start() {
     let user_example = UserMessage::QueueUpRequest(crate::network::messages::QueueUpRequest {
@@ -19,7 +20,7 @@ pub fn start() {
     let s = serde_json::to_string(&user_example).unwrap();
     println!("{:?}", s);
 
-    let initializer = Initializer::init();
+    let mut initializer = Initializer::init();
 
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
     println!("started listening on port 7878");
@@ -58,8 +59,28 @@ fn handler_user_message(queue_api: &QueueApi<RpcQueue>, message: UserMessage) ->
             };
             return ServerMessage::QueueUpResponse(result);
         }
-        UserMessage::NoUpdates => return ServerMessage::ServerPushUpdate(None), // in the future, this is how I will update on match and gameplay
+        UserMessage::NoUpdates => {
+            if let Some(m) = get_last_message(&queue_api.new_match_reciever) {
+                return ServerMessage::ServerPushUpdate(Some(
+                    ServerPushUpdate::PotentialMatchUpdate(PotentialMatchUpdate {
+                        opoonents_ids: m.player_ids,
+                    }),
+                ));
+            }
+            return ServerMessage::ServerPushUpdate(None);
+        }
     };
+}
+
+fn get_last_message<T>(reciever: &Receiver<T>) -> Option<T> {
+    let mut message = None;
+    while !reciever.is_empty() {
+        if let Ok(m) = reciever.recv() {
+            message = Some(m);
+        }
+    }
+
+    message
 }
 
 fn get_user_message(stream: &mut TcpStream) -> Result<UserMessage> {

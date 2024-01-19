@@ -5,6 +5,7 @@ pub mod queue_up_api;
 pub mod rpc_queue;
 pub trait PendingPlayersQueue: Clone {
     fn add(&self, user: User) -> Result<()>;
+    fn find_match(&self) -> Result<Option<Vec<User>>>;
 }
 
 #[derive(Clone)]
