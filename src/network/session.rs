@@ -10,6 +10,7 @@ use super::messages::{ServerMessage, UserMessage};
 enum ClientState {
     Unactive,
     WaitingForMatch,
+    WaintingForMatchApproval,
     InMatch,
 }
 
@@ -29,48 +30,64 @@ impl<'a> ClientSession<'a> {
     }
 
     pub fn process_message(&mut self, message: UserMessage) -> ServerMessage {
-        match message {
-            UserMessage::QueueUpRequest(request) => return self.queue_up_request(request),
-            UserMessage::NoUpdates => return self.no_updates(),
+        let (message, state) = match message {
+            UserMessage::QueueUpRequest(request) => self.queue_up_request(request),
+            UserMessage::NoUpdates => self.no_updates(),
         };
+
+        if let Some(s) = state {
+            self.state = s;
+        }
+
+        message
     }
 
-    fn no_updates(&mut self) -> ServerMessage {
+    fn no_updates(&self) -> (ServerMessage, Option<ClientState>) {
         match self.state {
-            ClientState::Unactive => ServerMessage::ServerPushUpdate(None),
+            ClientState::Unactive => (ServerMessage::ServerPushUpdate(None), None),
             ClientState::WaitingForMatch => {
                 let my_id = match &self.id {
                     Some(i) => i,
-                    None => return ServerMessage::ServerPushUpdate(None),
+                    None => return (ServerMessage::ServerPushUpdate(None), None),
                 };
 
                 if let Some(m) = get_last_message(&self.queue_api.new_match_reciever) {
                     let match_for_me = m.player_ids.iter().find(|id| id == &my_id).is_some();
                     if !match_for_me {
-                        return ServerMessage::ServerPushUpdate(None);
+                        return (ServerMessage::ServerPushUpdate(None), None);
                     }
-                    self.state = ClientState::InMatch;
-                    return ServerMessage::ServerPushUpdate(Some(
-                        ServerPushUpdate::PotentialMatchUpdate(PotentialMatchUpdate {
-                            opoonents_ids: m.player_ids,
-                        }),
-                    ));
+                    return (
+                        ServerMessage::ServerPushUpdate(Some(
+                            ServerPushUpdate::PotentialMatchUpdate(PotentialMatchUpdate {
+                                opoonents_ids: m.player_ids,
+                            }),
+                        )),
+                        Some(ClientState::WaintingForMatchApproval),
+                    );
                 }
-                ServerMessage::ServerPushUpdate(None)
+
+                (ServerMessage::ServerPushUpdate(None), None)
             }
-            ClientState::InMatch => ServerMessage::ServerPushUpdate(None),
+            ClientState::WaintingForMatchApproval => todo!(),
+            ClientState::InMatch => todo!(),
         }
     }
 
-    fn queue_up_request(&mut self, request: super::messages::QueueUpRequest) -> ServerMessage {
+    fn queue_up_request(
+        &self,
+        request: super::messages::QueueUpRequest,
+    ) -> (ServerMessage, Option<ClientState>) {
         let result = match self.queue_api.register_to_queue(&request.nickname) {
-            Ok(user) => {
-                self.state = ClientState::WaitingForMatch;
-                Ok(QueueUpResponse { id: user.id })
-            }
+            Ok(user) => Ok(QueueUpResponse { id: user.id }),
             Err(e) => Err(e.to_string()),
         };
-        ServerMessage::QueueUpResponse(result)
+
+        let state = match result {
+            Ok(_) => Some(ClientState::WaitingForMatch),
+            Err(_) => None,
+        };
+
+        (ServerMessage::QueueUpResponse(result), state)
     }
 }
 
