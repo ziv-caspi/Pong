@@ -1,8 +1,8 @@
 use crate::{
-    matchmaking::{queue_up_api::QueueApi, rpc_queue::RpcQueue},
-    network::{initializer::Initializer, messages::UserMessage},
+    new_matchmaking::rpc_datalayer::RpcMatchmakingDatalayer,
+    runner::{initializer::Initializer, messages::UserMessage},
 };
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 
 use std::{
     io::{BufRead, BufReader, Write},
@@ -17,7 +17,7 @@ pub fn start() {
     let s = serde_json::to_string(&user_example).unwrap();
     println!("{:?}", s);
 
-    let mut initializer = Initializer::init();
+    let initializer = Initializer::init();
 
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
     println!("started listening on port 7878");
@@ -25,10 +25,10 @@ pub fn start() {
     for stream in listener.incoming() {
         let stream = stream.unwrap();
 
-        let api = initializer.get_queue_api();
-        thread::spawn(|| {
+        let api = initializer.get_matchmaking();
+        thread::spawn(move || {
             let mut stream = stream;
-            if let Err(_) = handle_connection(&mut stream, api) {
+            if let Err(_) = handle_connection(&mut stream, &api) {
                 _ = stream.shutdown(std::net::Shutdown::Both);
                 println!("killed client connection")
             }
@@ -38,14 +38,21 @@ pub fn start() {
 
 // the protocol is that every loop the client will send a message to the server, it could be a request, or a NoUpdates message.
 // NoUpdates message is the servers chance to send push updates.
-fn handle_connection(mut stream: &mut TcpStream, api: QueueApi<RpcQueue>) -> Result<()> {
+fn handle_connection(mut stream: &mut TcpStream, api: &RpcMatchmakingDatalayer) -> Result<()> {
     let mut client_session = ClientSession::new(&api);
     loop {
-        let user_message = get_user_message(&mut stream)?;
-        let response = client_session.process_message(user_message);
-        let json = serde_json::to_string(&response).unwrap();
-        stream.write_all(json.as_bytes())?
+        if let Err(e) = protocol_cycle(stream, &mut client_session) {
+            client_session.kill_session();
+            return Err(e);
+        }
     }
+}
+
+fn protocol_cycle(stream: &mut TcpStream, client_session: &mut ClientSession<'_>) -> Result<()> {
+    let user_message = get_user_message(stream)?;
+    let response = client_session.process_message(user_message);
+    let json = serde_json::to_string(&response).unwrap();
+    Ok(stream.write_all(json.as_bytes())?)
 }
 
 fn get_user_message(stream: &mut TcpStream) -> Result<UserMessage> {
