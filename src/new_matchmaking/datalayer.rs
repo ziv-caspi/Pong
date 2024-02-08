@@ -9,6 +9,8 @@ use uuid::Uuid;
 
 use crate::utils::events::EventTopic;
 
+const MATCH_TIMEOUT: u64 = 60;
+
 #[derive(Clone)]
 pub struct OnNewMatch {
     pub match_id: String,
@@ -88,9 +90,11 @@ impl MatchmakingDataLayer {
             available: true,
         });
 
-        println!("registered client, current size: {}", self.pending_players.len());
+        println!(
+            "registered client, current size: {}",
+            self.pending_players.len()
+        );
         self.look_for_matches();
-
 
         Ok(())
     }
@@ -127,17 +131,31 @@ impl MatchmakingDataLayer {
     pub fn mark_player_as_ready(&mut self, match_id: String, player_id: String) -> Result<()> {
         let i = self.match_position_by_id(&match_id)?;
         let m = &mut self.matches[i];
-        if let Some(_) = m
-            .potential_players
-            .iter()
-            .find(|player| player == &&player_id)
-        {
+        let mut found = false;
+        for player in &m.potential_players {
+            println!("comparing: {} with {}", player, player_id);
+            if player.to_owned() == player_id {
+                found = true;
+                break;
+            }
+        }
+
+        if !found {
             bail!("this player is not a part of this match");
         }
 
+        // if let None = m
+        //     .potential_players
+        //     .iter()
+        //     .find(|player| player.to_owned().to_owned() == player_id)
+        // {
+
+        // }
+
         m.ready_players.push(player_id);
+        println!("new ready player, ready players: {}", m.ready_players.len());
         if m.ready_players.len() == m.potential_players.len() {
-            println!("found match!");
+            println!("starting match!");
             m.start();
             self.events
                 .on_match_change
@@ -157,7 +175,7 @@ impl MatchmakingDataLayer {
         let timeout = self.events.on_match_change.clone();
 
         thread::spawn(move || {
-            thread::sleep(Duration::from_secs(15));
+            thread::sleep(Duration::from_secs(MATCH_TIMEOUT));
 
             // todo: actually kill match
             // match not started

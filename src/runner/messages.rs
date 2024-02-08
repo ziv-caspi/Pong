@@ -7,14 +7,14 @@ use crate::new_matchmaking::datalayer::OnMatchStatusChange;
 pub enum UserMessage {
     NoUpdates,
     QueueUpRequest(QueueUpRequest),
-    JoinLobbyRequest(JoinLobbyRequest)
+    JoinLobbyRequest(JoinLobbyRequest),
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum ServerMessage {
     QueueUpResponse(Result<QueueUpResponse, String>),
-    JoinLobbyResponse(Result<(), String>),
+    JoinLobbyResponse(Result<JoinLobbyResponse, String>),
     ServerPushUpdate(Option<ServerPushUpdate>),
 }
 
@@ -22,7 +22,7 @@ pub enum ServerMessage {
 #[serde(rename_all = "camelCase")]
 pub enum ServerPushUpdate {
     PotentialMatchUpdate(PotentialMatchUpdate),
-    MatchStatusChange(MatchStatusChange)
+    MatchStatusChange(MatchStatusChange),
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -45,7 +45,14 @@ pub struct QueueUpResponse {
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
+pub struct JoinLobbyResponse {
+    pub match_id: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct PotentialMatchUpdate {
+    pub match__id: String,
     pub opoonents_ids: Vec<String>,
 }
 

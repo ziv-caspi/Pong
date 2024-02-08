@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-use super::messages::{JoinLobbyRequest, ServerMessage, UserMessage};
+use super::messages::{JoinLobbyRequest, JoinLobbyResponse, ServerMessage, UserMessage};
 
 enum ClientState {
     Unactive,
@@ -147,11 +147,12 @@ impl<'a> ClientSession<'a> {
                 continue;
             }
 
-            self.current_match = Some(message.match_id);
+            self.current_match = Some(message.match_id.clone());
             return (
                 ServerMessage::ServerPushUpdate(Some(ServerPushUpdate::PotentialMatchUpdate(
                     PotentialMatchUpdate {
                         opoonents_ids: message.players,
+                        match__id: message.match_id,
                     },
                 ))),
                 Some(ClientState::WaitingForMatchApproval),
@@ -223,6 +224,9 @@ impl<'a> ClientSession<'a> {
         let result = self
             .matchmaking
             .mark_player_as_ready(match_id.to_owned(), user_id.to_owned())
+            .map(|_| JoinLobbyResponse {
+                match_id: match_id.to_owned(),
+            })
             .map_err(|e| e.to_string());
 
         (
