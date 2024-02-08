@@ -1,3 +1,5 @@
+use std::result;
+
 use crossbeam::channel::Receiver;
 use uuid::Uuid;
 
@@ -11,7 +13,7 @@ use crate::{
     },
 };
 
-use super::messages::{ServerMessage, UserMessage};
+use super::messages::{JoinLobbyRequest, ServerMessage, UserMessage};
 
 enum ClientState {
     Unactive,
@@ -73,6 +75,13 @@ impl<'a> ClientSession<'a> {
             | (UserMessage::QueueUpRequest(_), ClientState::WaitingForMatchApproval)
             | (UserMessage::QueueUpRequest(_), ClientState::InMatchLobby)
             | (UserMessage::QueueUpRequest(_), ClientState::InMatch) => nothing(),
+            (UserMessage::JoinLobbyRequest(_), ClientState::Unactive) => nothing(),
+            (UserMessage::JoinLobbyRequest(_), ClientState::WaitingForMatch) => nothing(),
+            (UserMessage::JoinLobbyRequest(request), ClientState::WaitingForMatchApproval) => {
+                self.join_lobby(request)
+            } // magic
+            (UserMessage::JoinLobbyRequest(_), ClientState::InMatchLobby) => nothing(),
+            (UserMessage::JoinLobbyRequest(_), ClientState::InMatch) => nothing(),
         };
 
         if let Some(s) = state {
@@ -109,10 +118,13 @@ impl<'a> ClientSession<'a> {
                     };
                     let state = ClientState::InMatch;
                     (m, state)
-                },
+                }
             };
 
-            return (ServerMessage::ServerPushUpdate(Some(ServerPushUpdate::MatchStatusChange(message))), Some(state));
+            return (
+                ServerMessage::ServerPushUpdate(Some(ServerPushUpdate::MatchStatusChange(message))),
+                Some(state),
+            );
         }
 
         nothing()
@@ -174,6 +186,49 @@ impl<'a> ClientSession<'a> {
                 )
             }
         };
+    }
+
+    fn join_lobby(&self, request: &JoinLobbyRequest) -> (ServerMessage, Option<ClientState>) {
+        let user_id = match &self.id {
+            Some(i) => i,
+            None => {
+                return (
+                    ServerMessage::JoinLobbyResponse(Err(String::from(
+                        "user state says this user is not registered",
+                    ))),
+                    None,
+                );
+            }
+        };
+        let match_id = match &self.current_match {
+            Some(i) => i,
+            None => {
+                return (
+                    ServerMessage::JoinLobbyResponse(Err(String::from(
+                        "user state says this user is not part of a match",
+                    ))),
+                    None,
+                );
+            }
+        };
+        if match_id != &request.match_id {
+            return (
+                ServerMessage::JoinLobbyResponse(Err(String::from(
+                    "user state says this user is part of a diffrent match",
+                ))),
+                None,
+            );
+        }
+
+        let result = self
+            .matchmaking
+            .mark_player_as_ready(match_id.to_owned(), user_id.to_owned())
+            .map_err(|e| e.to_string());
+
+        (
+            ServerMessage::JoinLobbyResponse(result),
+            Some(ClientState::InMatchLobby),
+        )
     }
 }
 
