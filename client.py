@@ -24,7 +24,6 @@ def queue_up(nickname):
    s.send(req)
    response = s.recv(1024)
    parsed = parse_response(response)
-   print(parsed)
    return parsed['queueUpResponse']['Ok']['id']
 
 def join_lobby(match_id):
@@ -38,7 +37,6 @@ def join_lobby(match_id):
    s.send(req)
    response = s.recv(1024)
    parsed: dict = parse_response(response)
-   print(parsed)
    response: dict = parsed.get('joinLobbyResponse')
    if not response.get('Ok'):
       print('could not join lobby:', response)
@@ -55,7 +53,6 @@ def no_updates():
    response = s.recv(1024)
    parsed = parse_response(response)
    if parsed['serverPushUpdate']:
-      print(parsed)
       return parsed
    return None
 
@@ -79,7 +76,7 @@ while True:
       continue
    
    (match_id, players) = try_potential_match_update(update)
-   if id:
+   if match_id:
       user_in = ''
       print('Found a match for you!')
       while user_in != 'GO':
