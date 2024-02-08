@@ -6,7 +6,9 @@ use crate::{
         datalayer::{OnMatchStatusChange, OnNewMatch, User},
         rpc_datalayer::RpcMatchmakingDatalayer,
     },
-    runner::messages::{PotentialMatchUpdate, QueueUpResponse, ServerPushUpdate},
+    runner::messages::{
+        MatchStatusChange, PotentialMatchUpdate, QueueUpResponse, ServerPushUpdate,
+    },
 };
 
 use super::messages::{ServerMessage, UserMessage};
@@ -46,10 +48,12 @@ impl<'a> ClientSession<'a> {
 
     pub fn kill_session(&mut self) {
         if let Some(id) = &self.id {
-            _ = self.matchmaking.remove_from_queue(id.to_owned());  
+            _ = self.matchmaking.remove_from_queue(id.to_owned());
             if let Some(match_id) = &self.current_match {
-                _ = self.matchmaking.remove_from_match(match_id.to_owned(), id.to_owned());
-            }  
+                _ = self
+                    .matchmaking
+                    .remove_from_match(match_id.to_owned(), id.to_owned());
+            }
         }
     }
 
@@ -57,10 +61,14 @@ impl<'a> ClientSession<'a> {
         let (message, state) = match (&message, &self.state) {
             (UserMessage::NoUpdates, ClientState::Unactive) => nothing(),
             (UserMessage::NoUpdates, ClientState::WaitingForMatch) => self.waiting_for_match(),
-            (UserMessage::NoUpdates, ClientState::WaitingForMatchApproval) => self.update_on_match_change(),
+            (UserMessage::NoUpdates, ClientState::WaitingForMatchApproval) => {
+                self.update_on_match_change()
+            }
             (UserMessage::NoUpdates, ClientState::InMatchLobby) => self.update_on_match_change(),
             (UserMessage::NoUpdates, ClientState::InMatch) => todo!(), // not handled at the moment
-            (UserMessage::QueueUpRequest(request), ClientState::Unactive) => self.queue_up_request(request),
+            (UserMessage::QueueUpRequest(request), ClientState::Unactive) => {
+                self.queue_up_request(request)
+            }
             (UserMessage::QueueUpRequest(_), ClientState::WaitingForMatch)
             | (UserMessage::QueueUpRequest(_), ClientState::WaitingForMatchApproval)
             | (UserMessage::QueueUpRequest(_), ClientState::InMatchLobby)
@@ -77,7 +85,34 @@ impl<'a> ClientSession<'a> {
     fn update_on_match_change(&self) -> (ServerMessage, Option<ClientState>) {
         if let Ok(change) = self.on_match_change.try_recv() {
             println!("match changed, should notify to client, {:?}", change);
-            return nothing(); // no support for notifying on change yet
+            let (message, state) = match change {
+                OnMatchStatusChange::OnTimeout(_) => {
+                    let m = MatchStatusChange {
+                        start: false,
+                        end_reason: String::from("timeout"),
+                    };
+                    let state = ClientState::Unactive;
+                    (m, state)
+                }
+                OnMatchStatusChange::OnDeath(_) => {
+                    let m = MatchStatusChange {
+                        start: false,
+                        end_reason: String::from("death"),
+                    };
+                    let state = ClientState::Unactive;
+                    (m, state)
+                }
+                OnMatchStatusChange::OnStart(_) => {
+                    let m = MatchStatusChange {
+                        start: true,
+                        end_reason: String::from(""),
+                    };
+                    let state = ClientState::InMatch;
+                    (m, state)
+                },
+            };
+
+            return (ServerMessage::ServerPushUpdate(Some(ServerPushUpdate::MatchStatusChange(message))), Some(state));
         }
 
         nothing()
@@ -115,7 +150,7 @@ impl<'a> ClientSession<'a> {
     }
 
     fn queue_up_request(
-        &self,
+        &mut self,
         request: &super::messages::QueueUpRequest,
     ) -> (ServerMessage, Option<ClientState>) {
         let id = Uuid::new_v4();
@@ -126,6 +161,7 @@ impl<'a> ClientSession<'a> {
 
         match self.matchmaking.register(user) {
             Ok(_) => {
+                self.id = Some(id.to_string());
                 return (
                     ServerMessage::QueueUpResponse(Ok(QueueUpResponse { id: id.to_string() })),
                     Some(ClientState::WaitingForMatch),

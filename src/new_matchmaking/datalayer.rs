@@ -88,7 +88,9 @@ impl MatchmakingDataLayer {
             available: true,
         });
 
+        println!("registered client, current size: {}", self.pending_players.len());
         self.look_for_matches();
+
 
         Ok(())
     }
@@ -96,6 +98,7 @@ impl MatchmakingDataLayer {
     pub fn remove_from_queue(&mut self, id: String) -> Result<()> {
         let i = self.player_position_by_id(&id)?;
         self.pending_players.remove(i);
+        println!("removed player from queue");
         Ok(())
     }
 
@@ -134,6 +137,7 @@ impl MatchmakingDataLayer {
 
         m.ready_players.push(player_id);
         if m.ready_players.len() == m.potential_players.len() {
+            println!("found match!");
             m.start();
             self.events
                 .on_match_change
@@ -155,6 +159,7 @@ impl MatchmakingDataLayer {
         thread::spawn(move || {
             thread::sleep(Duration::from_secs(15));
 
+            // todo: actually kill match
             // match not started
             if r.is_empty() {
                 timeout.invoke(OnMatchStatusChange::OnTimeout(id.to_string()))

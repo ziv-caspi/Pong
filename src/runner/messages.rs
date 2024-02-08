@@ -1,5 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 
+use crate::new_matchmaking::datalayer::OnMatchStatusChange;
+
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum UserMessage {
@@ -18,6 +20,7 @@ pub enum ServerMessage {
 #[serde(rename_all = "camelCase")]
 pub enum ServerPushUpdate {
     PotentialMatchUpdate(PotentialMatchUpdate),
+    MatchStatusChange(MatchStatusChange)
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -36,4 +39,11 @@ pub struct QueueUpResponse {
 #[serde(rename_all = "camelCase")]
 pub struct PotentialMatchUpdate {
     pub opoonents_ids: Vec<String>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchStatusChange {
+    pub start: bool,
+    pub end_reason: String,
 }
