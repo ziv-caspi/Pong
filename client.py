@@ -1,6 +1,7 @@
 import socket
 import json
 import time
+import pygame
 
 def connect(port):
    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -63,36 +64,73 @@ def try_potential_match_update(response: dict):
    else:
       return (None, None)
 
+def enter_match(s):
+   print('enter nickname:')
+   name = input()
+   id = queue_up(name)
+   print('user id:', id)
 
-s = connect(7878)
-print('enter nickname:')
-name = input()
-id = queue_up(name)
-print('user id:', id)
-
-while True:
-   update = no_updates()
-   if not update:
-      continue
-   
-   (match_id, players) = try_potential_match_update(update)
-   if match_id:
-      user_in = ''
-      print('Found a match for you!')
-      while user_in != 'GO':
-         print('Type GO to join lobby')
-         user_in = input()
-         join_lobby(match_id)
+   while True:
+      update = no_updates()
+      if not update:
+         continue
       
+      (match_id, players) = try_potential_match_update(update)
+      if match_id:
+         user_in = ''
+         print('Found a match for you!')
+         while user_in != 'GO':
+            print('Type GO to join lobby')
+            user_in = input()
+            join_lobby(match_id)
+
+def start_game():
+   # pygame setup
+   pygame.init()
+   screen = pygame.display.set_mode((1280, 720))
+   clock = pygame.time.Clock()
+   running = True
+   dt = 0
+
+   player_pos = pygame.Vector2(screen.get_width() / 15, screen.get_height() / 2)
+
+   while running:
+      for event in pygame.event.get():
+         if event.type == pygame.QUIT:
+               running = False
+
+      screen.fill('black')
+
+      pygame.draw.rect(surface=screen, color=(136, 242, 139), rect=(player_pos, (10, 150)))
+      #pygame.draw.circle(screen, "red", player_pos, 40)
+
+      pos_delta = 300 * dt
+      moved = False
+      
+      keys = pygame.key.get_pressed()
+      if keys[pygame.K_UP]:
+         pos_delta *= -1
+         moved=True
+      if keys[pygame.K_DOWN]:
+         pos_delta *= 1
+         moved=True
+
+      if moved:
+         player_pos.y += pos_delta
+
+      pygame.display.flip()
+      dt = clock.tick(60) / 1000
+
+   pygame.quit()
 
 
-# time.sleep(3)
-# s.send(prepare_request(queue_up_request))
-# response = s.recv(1024)
-# print('response:', response)
-# while True:
-#    s.send(prepare_request(no_updates_request))
-#    response = s.recv(1024)
-#    parsed = parse_response(response)
-#    if parsed['serverPushUpdate']:
-#       print('response:', response)
+def main():
+   start_game()
+   return
+   s = connect(7878)
+   enter_match(s)
+
+
+if __name__ == '__main__':
+   main()
+      
