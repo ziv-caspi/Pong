@@ -152,7 +152,7 @@ impl<'a> ClientSession<'a> {
                 ServerMessage::ServerPushUpdate(Some(ServerPushUpdate::PotentialMatchUpdate(
                     PotentialMatchUpdate {
                         opoonents_ids: message.players,
-                        match__id: message.match_id,
+                        match_id: message.match_id,
                     },
                 ))),
                 Some(ClientState::WaitingForMatchApproval),

@@ -52,7 +52,7 @@ pub struct JoinLobbyResponse {
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PotentialMatchUpdate {
-    pub match__id: String,
+    pub match_id: String,
     pub opoonents_ids: Vec<String>,
 }
 
