@@ -23,6 +23,7 @@ pub struct OnGameStateUpdate {
     state: GameState,
 }
 
+#[derive(Clone)]
 pub struct SafeGameDatalayer {
     inner: Arc<Mutex<MemoryGameDatalayer>>,
 }

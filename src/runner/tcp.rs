@@ -1,8 +1,9 @@
 use crate::{
+    gameplay::SafeGameDatalayer,
     new_matchmaking::rpc_datalayer::RpcMatchmakingDatalayer,
     runner::{initializer::Initializer, messages::UserMessage},
 };
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 
 use std::{
     io::{BufRead, BufReader, Write},
@@ -26,9 +27,10 @@ pub fn start() {
         let stream = stream.unwrap();
 
         let api = initializer.get_matchmaking();
+        let gameplay = initializer.get_gameplay();
         thread::spawn(move || {
             let mut stream = stream;
-            if let Err(_) = handle_connection(&mut stream, &api) {
+            if let Err(_) = handle_connection(&mut stream, &api, &gameplay) {
                 _ = stream.shutdown(std::net::Shutdown::Both);
                 println!("killed client connection")
             }
@@ -38,8 +40,12 @@ pub fn start() {
 
 // the protocol is that every loop the client will send a message to the server, it could be a request, or a NoUpdates message.
 // NoUpdates message is the servers chance to send push updates.
-fn handle_connection(mut stream: &mut TcpStream, api: &RpcMatchmakingDatalayer) -> Result<()> {
-    let mut client_session = ClientSession::new(&api);
+fn handle_connection(
+    mut stream: &mut TcpStream,
+    api: &RpcMatchmakingDatalayer,
+    gameplay: &SafeGameDatalayer,
+) -> Result<()> {
+    let mut client_session = ClientSession::new(api, gameplay);
     loop {
         if let Err(e) = protocol_cycle(stream, &mut client_session) {
             client_session.kill_session();
@@ -48,7 +54,10 @@ fn handle_connection(mut stream: &mut TcpStream, api: &RpcMatchmakingDatalayer) 
     }
 }
 
-fn protocol_cycle(stream: &mut TcpStream, client_session: &mut ClientSession<'_>) -> Result<()> {
+fn protocol_cycle(
+    stream: &mut TcpStream,
+    client_session: &mut ClientSession<'_, SafeGameDatalayer>,
+) -> Result<()> {
     let user_message = get_user_message(stream)?;
     let response = client_session.process_message(user_message);
     let json = serde_json::to_string(&response).unwrap();

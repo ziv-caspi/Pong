@@ -4,6 +4,7 @@ use crossbeam::channel::Receiver;
 use uuid::Uuid;
 
 use crate::{
+    gameplay::game_datalayer::GameDatalayer,
     new_matchmaking::{
         datalayer::{OnMatchStatusChange, OnNewMatch, User},
         rpc_datalayer::RpcMatchmakingDatalayer,
@@ -23,7 +24,7 @@ enum ClientState {
     InMatch,
 }
 
-pub struct ClientSession<'a> {
+pub struct ClientSession<'a, TGameDatalayer> {
     id: Option<String>,
     current_match: Option<String>,
     state: ClientState,
@@ -31,10 +32,14 @@ pub struct ClientSession<'a> {
     matchmaking: &'a RpcMatchmakingDatalayer,
     on_new_match: Receiver<OnNewMatch>,
     on_match_change: Receiver<OnMatchStatusChange>,
+    gameplay: &'a TGameDatalayer,
 }
 
-impl<'a> ClientSession<'a> {
-    pub fn new(matchmaking: &'a RpcMatchmakingDatalayer) -> Self {
+impl<'a, TGameDatalayer> ClientSession<'a, TGameDatalayer>
+where
+    TGameDatalayer: GameDatalayer,
+{
+    pub fn new(matchmaking: &'a RpcMatchmakingDatalayer, gameplay: &'a TGameDatalayer) -> Self {
         let on_new_match = matchmaking.events.on_new_match.subscribe();
         let on_match_change = matchmaking.events.on_match_change.subscribe();
 
@@ -45,6 +50,7 @@ impl<'a> ClientSession<'a> {
             matchmaking,
             on_new_match,
             on_match_change,
+            gameplay,
         }
     }
 
