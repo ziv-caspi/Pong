@@ -27,10 +27,10 @@ pub fn start() {
         let stream = stream.unwrap();
 
         let api = initializer.get_matchmaking();
-        let gameplay = initializer.get_gameplay();
+        let mut gameplay = initializer.get_gameplay();
         thread::spawn(move || {
             let mut stream = stream;
-            if let Err(_) = handle_connection(&mut stream, &api, &gameplay) {
+            if let Err(_) = handle_connection(&mut stream, &api, &mut gameplay) {
                 _ = stream.shutdown(std::net::Shutdown::Both);
                 println!("killed client connection")
             }
@@ -43,7 +43,7 @@ pub fn start() {
 fn handle_connection(
     mut stream: &mut TcpStream,
     api: &RpcMatchmakingDatalayer,
-    gameplay: &SafeGameDatalayer,
+    gameplay: &mut SafeGameDatalayer,
 ) -> Result<()> {
     let mut client_session = ClientSession::new(api, gameplay);
     loop {

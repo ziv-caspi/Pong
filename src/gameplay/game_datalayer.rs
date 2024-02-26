@@ -5,6 +5,7 @@ use crate::utils::events::EventTopic;
 use anyhow::{bail, Result};
 
 pub trait GameDatalayer {
+    fn get_on_game_change(&self) -> EventTopic<OnGameStateUpdate>;
     fn new_game(&mut self, match_id: String, player1_id: String, player2_id: String) -> GameState;
     fn move_player(&mut self, match_id: &str, player_id: &str, delta: i32) -> Result<()>;
 }
@@ -60,5 +61,9 @@ impl GameDatalayer for MemoryGameDatalayer {
             state: state,
         });
         Ok(())
+    }
+
+    fn get_on_game_change(&self) -> EventTopic<OnGameStateUpdate> {
+        self.on_game_update.clone()
     }
 }

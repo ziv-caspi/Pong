@@ -1,20 +1,21 @@
-use std::result;
-
-use crossbeam::channel::Receiver;
+use crossbeam::channel::{Receiver, RecvError};
 use uuid::Uuid;
 
 use crate::{
-    gameplay::game_datalayer::GameDatalayer,
+    gameplay::{game_datalayer::GameDatalayer, OnGameStateUpdate},
     new_matchmaking::{
         datalayer::{OnMatchStatusChange, OnNewMatch, User},
         rpc_datalayer::RpcMatchmakingDatalayer,
     },
     runner::messages::{
-        MatchStatusChange, PotentialMatchUpdate, QueueUpResponse, ServerPushUpdate,
+        MatchStatusChange, MovePlayerResponse, PotentialMatchUpdate, QueueUpResponse,
+        ServerPushUpdate,
     },
 };
 
-use super::messages::{JoinLobbyRequest, JoinLobbyResponse, ServerMessage, UserMessage};
+use super::messages::{
+    JoinLobbyRequest, JoinLobbyResponse, MovePlayerRequest, ServerMessage, UserMessage,
+};
 
 enum ClientState {
     Unactive,
@@ -32,16 +33,18 @@ pub struct ClientSession<'a, TGameDatalayer> {
     matchmaking: &'a RpcMatchmakingDatalayer,
     on_new_match: Receiver<OnNewMatch>,
     on_match_change: Receiver<OnMatchStatusChange>,
-    gameplay: &'a TGameDatalayer,
+    gameplay: &'a mut TGameDatalayer,
+    on_game_change: Receiver<OnGameStateUpdate>,
 }
 
 impl<'a, TGameDatalayer> ClientSession<'a, TGameDatalayer>
 where
     TGameDatalayer: GameDatalayer,
 {
-    pub fn new(matchmaking: &'a RpcMatchmakingDatalayer, gameplay: &'a TGameDatalayer) -> Self {
+    pub fn new(matchmaking: &'a RpcMatchmakingDatalayer, gameplay: &'a mut TGameDatalayer) -> Self {
         let on_new_match = matchmaking.events.on_new_match.subscribe();
         let on_match_change = matchmaking.events.on_match_change.subscribe();
+        let on_game_change = gameplay.get_on_game_change().subscribe();
 
         Self {
             id: None,
@@ -51,6 +54,7 @@ where
             on_new_match,
             on_match_change,
             gameplay,
+            on_game_change,
         }
     }
 
@@ -73,7 +77,7 @@ where
                 self.update_on_match_change()
             }
             (UserMessage::NoUpdates, ClientState::InMatchLobby) => self.update_on_match_change(),
-            (UserMessage::NoUpdates, ClientState::InMatch) => todo!(), // not handled at the moment
+            (UserMessage::NoUpdates, ClientState::InMatch) => self.get_gameplay_state(), // not handled at the moment
             (UserMessage::QueueUpRequest(request), ClientState::Unactive) => {
                 self.queue_up_request(request)
             }
@@ -88,6 +92,13 @@ where
             } // magic
             (UserMessage::JoinLobbyRequest(_), ClientState::InMatchLobby) => nothing(),
             (UserMessage::JoinLobbyRequest(_), ClientState::InMatch) => nothing(),
+            (UserMessage::MovePlayerRequest(_), ClientState::Unactive) => nothing(),
+            (UserMessage::MovePlayerRequest(_), ClientState::WaitingForMatch) => nothing(),
+            (UserMessage::MovePlayerRequest(_), ClientState::WaitingForMatchApproval) => nothing(),
+            (UserMessage::MovePlayerRequest(_), ClientState::InMatchLobby) => nothing(),
+            (UserMessage::MovePlayerRequest(request), ClientState::InMatch) => {
+                self.move_player(request)
+            }
         };
 
         if let Some(s) = state {
@@ -239,6 +250,52 @@ where
             ServerMessage::JoinLobbyResponse(result),
             Some(ClientState::InMatchLobby),
         )
+    }
+
+    fn move_player(&mut self, request: &MovePlayerRequest) -> (ServerMessage, Option<ClientState>) {
+        let user_id = match &self.id {
+            Some(i) => i,
+            None => {
+                return (
+                    ServerMessage::JoinLobbyResponse(Err(String::from(
+                        "user state says this user is not registered",
+                    ))),
+                    None,
+                );
+            }
+        };
+
+        match self
+            .gameplay
+            .move_player(&request.match_id, user_id, request.y_delta)
+        {
+            Ok(_) => (
+                ServerMessage::MovePlayerResponse(Ok(MovePlayerResponse {
+                    match_id: request.match_id.to_owned(),
+                })),
+                None,
+            ),
+            Err(e) => (ServerMessage::MovePlayerResponse(Err(e.to_string())), None),
+        }
+    }
+
+    fn get_gameplay_state(&self) -> (ServerMessage, Option<ClientState>) {
+        let mut latest_state = Err(RecvError {});
+        while !self.on_game_change.is_empty() {
+            latest_state = self.on_game_change.recv();
+        }
+        match latest_state {
+            Ok(state) => {
+                let message = ServerMessage::ServerPushUpdate(Some(
+                    ServerPushUpdate::GameStateChange(OnGameStateUpdate {
+                        id: String::from(""),
+                        state: state.state.clone(),
+                    }),
+                ));
+                (message, None)
+            }
+            Err(_) => nothing(),
+        }
     }
 }
 
