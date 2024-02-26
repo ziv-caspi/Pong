@@ -285,15 +285,10 @@ where
             latest_state = self.on_game_change.recv();
         }
         match latest_state {
-            Ok(state) => {
-                let message = ServerMessage::ServerPushUpdate(Some(
-                    ServerPushUpdate::GameStateChange(OnGameStateUpdate {
-                        id: String::from(""),
-                        state: state.state.clone(),
-                    }),
-                ));
-                (message, None)
-            }
+            Ok(state) => (
+                ServerMessage::ServerPushUpdate(Some(ServerPushUpdate::GameStateChange(state))),
+                None,
+            ),
             Err(_) => nothing(),
         }
     }
