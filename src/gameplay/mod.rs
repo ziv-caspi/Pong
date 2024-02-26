@@ -11,6 +11,14 @@ pub mod game_datalayer;
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[derive(Clone)]
+pub struct Player {
+    id: String,
+    position: Position,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[derive(Clone)]
 pub struct Position {
     x: u32,
     y: u32,
@@ -20,8 +28,8 @@ pub struct Position {
 #[serde(rename_all = "camelCase")]
 #[derive(Clone)]
 pub struct GameState {
-    player1_pos: Position,
-    player2_pos: Position,
+    player1_pos: Player,
+    player2_pos: Player,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

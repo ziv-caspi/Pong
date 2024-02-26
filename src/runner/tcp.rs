@@ -1,7 +1,10 @@
 use crate::{
     gameplay::SafeGameDatalayer,
     new_matchmaking::rpc_datalayer::RpcMatchmakingDatalayer,
-    runner::{initializer::Initializer, messages::UserMessage},
+    runner::{
+        initializer::Initializer,
+        messages::{MovePlayerRequest, UserMessage},
+    },
 };
 use anyhow::{anyhow, Result};
 
@@ -14,7 +17,10 @@ use std::{
 use super::session::ClientSession;
 
 pub fn start() {
-    let user_example = UserMessage::NoUpdates;
+    let user_example = UserMessage::MovePlayerRequest(MovePlayerRequest {
+        match_id: String::from("abc"),
+        y_delta: -5,
+    });
     let s = serde_json::to_string(&user_example).unwrap();
     println!("{:?}", s);
 
@@ -48,6 +54,7 @@ fn handle_connection(
     let mut client_session = ClientSession::new(api, gameplay);
     loop {
         if let Err(e) = protocol_cycle(stream, &mut client_session) {
+            println!("couldnt execute protocol cycle. err: {}", e);
             client_session.kill_session();
             return Err(e);
         }

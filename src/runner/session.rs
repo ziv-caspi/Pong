@@ -17,6 +17,7 @@ use super::messages::{
     JoinLobbyRequest, JoinLobbyResponse, MovePlayerRequest, ServerMessage, UserMessage,
 };
 
+#[derive(Debug)]
 enum ClientState {
     Unactive,
     WaitingForMatch,
@@ -70,6 +71,10 @@ where
     }
 
     pub fn process_message(&mut self, message: UserMessage) -> ServerMessage {
+        println!(
+            "processing message. state: {:?}, message: {:?}",
+            message, self.state
+        );
         let (message, state) = match (&message, &self.state) {
             (UserMessage::NoUpdates, ClientState::Unactive) => nothing(),
             (UserMessage::NoUpdates, ClientState::WaitingForMatch) => self.waiting_for_match(),
@@ -253,11 +258,12 @@ where
     }
 
     fn move_player(&mut self, request: &MovePlayerRequest) -> (ServerMessage, Option<ClientState>) {
+        println!("got move player request");
         let user_id = match &self.id {
             Some(i) => i,
             None => {
                 return (
-                    ServerMessage::JoinLobbyResponse(Err(String::from(
+                    ServerMessage::MovePlayerResponse(Err(String::from(
                         "user state says this user is not registered",
                     ))),
                     None,

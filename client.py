@@ -70,7 +70,8 @@ def enter_match(s):
    id = queue_up(name)
    print('user id:', id)
 
-   while True:
+   pending = True
+   while pending:
       update = no_updates()
       if not update:
          continue
@@ -83,8 +84,36 @@ def enter_match(s):
             print('Type GO to join lobby')
             user_in = input()
             join_lobby(match_id)
+            pending = False
 
-def start_game():
+   print('finished joining match')
+   return (id, match_id)
+
+def move_player(pos_delta, match_id):
+   #"{\"movePlayerRequest\":{\"matchId\":\"abc\",\"yDelta\":-5}}"
+   move_player_request = {
+      "movePlayerRequest": {
+         "matchId": match_id,
+         "yDelta": int(pos_delta)
+      }
+   }
+   req = prepare_request(move_player_request)
+   print('sending move, socket:', s, 'req:', req)
+   s.send(req)
+   response = s.recv(1024)
+   print(response)
+   parsed = parse_response(response)
+   print('move player response:', parsed)
+   # if parsed['serverPushUpdate']:
+   #    return parsed
+   # return None
+
+def move(player_pos, pos_delta, match_id):
+   #  player_pos.y += pos_delta
+    print(pos_delta)
+    move_player(pos_delta, match_id)
+
+def start_game(id, match_id):
    # pygame setup
    pygame.init()
    screen = pygame.display.set_mode((1280, 720))
@@ -107,6 +136,24 @@ def start_game():
       pos_delta = 300 * dt
       moved = False
       
+      update = no_updates()
+      if update:
+         print(update)
+         #'serverPushUpdate': {'gameStateChange': {'id': '68fab15b-b4c6-42c2-8585-a4b609f8d013', 'state': {'player1Pos': {'x': 85, 'y': 355}, 'player2Pos': {'x': 1195, 'y': 360}}}}}
+         game_change = update.get('serverPushUpdate').get('gameStateChange')
+         if game_change:
+            state = game_change['state']
+            player1 = state['player1Pos']
+            player2 = state['player2Pos']
+            me = None
+            if player1['id'] == id:
+               me = player1
+            else:
+               me = player2
+            
+            player_pos.y = me['position']['y']
+
+
       keys = pygame.key.get_pressed()
       if keys[pygame.K_UP]:
          pos_delta *= -1
@@ -116,7 +163,7 @@ def start_game():
          moved=True
 
       if moved:
-         player_pos.y += pos_delta
+         move(player_pos, pos_delta, match_id)
 
       pygame.display.flip()
       dt = clock.tick(60) / 1000
@@ -124,13 +171,15 @@ def start_game():
    pygame.quit()
 
 
+
+
 def main():
-   start_game()
+   (id, match_id) = enter_match(s)
+   start_game(id, match_id)
    return
-   s = connect(7878)
-   enter_match(s)
 
 
+s = connect(7878) # TODO: change to function params
 if __name__ == '__main__':
    main()
       

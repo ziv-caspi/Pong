@@ -47,8 +47,15 @@ impl Match {
 #[derive(Clone, Debug)]
 pub enum OnMatchStatusChange {
     OnTimeout(String),
-    OnStart(String),
     OnDeath(String),
+    OnStart(OnMatchStart),
+}
+
+#[derive(Clone, Debug)]
+pub struct OnMatchStart {
+    pub match_id: String,
+    pub player1: String,
+    pub player2: String,
 }
 
 #[derive(Clone)]
@@ -157,9 +164,15 @@ impl MatchmakingDataLayer {
         if m.ready_players.len() == m.potential_players.len() {
             println!("starting match!");
             m.start();
+            let player1 = &m.ready_players[0];
+            let player2 = &m.ready_players[1];
             self.events
                 .on_match_change
-                .invoke(OnMatchStatusChange::OnStart(m.id.clone()))
+                .invoke(OnMatchStatusChange::OnStart(OnMatchStart {
+                    match_id: m.id.clone(),
+                    player1: player1.to_owned(),
+                    player2: player2.to_owned(),
+                }))
         }
 
         Ok(())

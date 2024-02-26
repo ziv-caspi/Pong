@@ -11,9 +11,13 @@ pub struct Initializer {
 impl Initializer {
     pub fn init() -> Initializer {
         let matchmaking = RpcMatchmakingDatalayer::new();
-        new_matchmaking::background_match_finder::look_for_matches(&matchmaking);
-
         let gameplay = SafeGameDatalayer::new();
+
+        new_matchmaking::backgroung::look_for_matches(&matchmaking);
+        new_matchmaking::backgroung::act_on_new_game(
+            gameplay.clone(),
+            matchmaking.events.on_match_change.clone(),
+        );
 
         Initializer {
             matchmaking,

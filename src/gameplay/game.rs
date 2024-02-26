@@ -1,7 +1,7 @@
 use crate::{new_matchmaking::datalayer::User, utils::events::EventTopic};
 use anyhow::{bail, Result};
 
-use super::{GameState, Position};
+use super::{GameState, Player, Position};
 
 const SCREEN_SIZE: (u32, u32) = (1280, 720);
 const PLAYER_START_Y: u32 = SCREEN_SIZE.1 / 2;
@@ -9,11 +9,6 @@ const PLAYER_START_X: u32 = SCREEN_SIZE.0 / 15;
 
 const PLAYER1_START_X: u32 = PLAYER_START_X;
 const PLAYER2_START_X: u32 = SCREEN_SIZE.0 - PLAYER_START_X;
-
-struct Player {
-    id: String,
-    position: Position,
-}
 
 pub struct Game {
     pub match_id: String,
@@ -44,8 +39,8 @@ impl Game {
 
     pub fn get_state(&self) -> GameState {
         GameState {
-            player1_pos: self.player1.position.clone(),
-            player2_pos: self.player2.position.clone(),
+            player1_pos: self.player1.clone(),
+            player2_pos: self.player2.clone(),
         }
     }
 
