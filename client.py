@@ -104,12 +104,8 @@ def move_player(pos_delta, match_id):
    print(response)
    parsed = parse_response(response)
    print('move player response:', parsed)
-   # if parsed['serverPushUpdate']:
-   #    return parsed
-   # return None
 
-def move(player_pos, pos_delta, match_id):
-   #  player_pos.y += pos_delta
+def move(pos_delta, match_id):
     print(pos_delta)
     move_player(pos_delta, match_id)
 
@@ -171,7 +167,7 @@ def start_game(id, match_id):
          moved=True
 
       if moved:
-         move(player_pos, pos_delta, match_id)
+         move(pos_delta, match_id)
 
       pygame.display.flip()
       dt = clock.tick(60) / 1000
