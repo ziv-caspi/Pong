@@ -121,7 +121,8 @@ def start_game(id, match_id):
    running = True
    dt = 0
 
-   player_pos = pygame.Vector2(screen.get_width() / 15, screen.get_height() / 2)
+   player_pos = pygame.Vector2(-100, -100) # player should not be visible until server says so
+   oponnent_pos = pygame.Vector2(-100, -100) # player should not be visible until server says so
 
    while running:
       for event in pygame.event.get():
@@ -131,6 +132,7 @@ def start_game(id, match_id):
       screen.fill('black')
 
       pygame.draw.rect(surface=screen, color=(136, 242, 139), rect=(player_pos, (10, 150)))
+      pygame.draw.rect(surface=screen, color=(255, 255, 255), rect=(oponnent_pos, (10, 150)))
       #pygame.draw.circle(screen, "red", player_pos, 40)
 
       pos_delta = 300 * dt
@@ -146,12 +148,18 @@ def start_game(id, match_id):
             player1 = state['player1Pos']
             player2 = state['player2Pos']
             me = None
+            oponnent = None
             if player1['id'] == id:
                me = player1
+               oponnent = player2
             else:
                me = player2
+               oponnent = player1
             
             player_pos.y = me['position']['y']
+            player_pos.x = me['position']['x']
+            oponnent_pos.y = oponnent['position']['y']
+            oponnent_pos.x = oponnent['position']['x']
 
 
       keys = pygame.key.get_pressed()

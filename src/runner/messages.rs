@@ -68,9 +68,9 @@ pub struct PotentialMatchUpdate {
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct MatchStatusChange {
-    pub start: bool,
-    pub end_reason: String,
+pub enum MatchStatusChange {
+    Stop(String),
+    Start(String, String),
 }
 
 #[derive(Deserialize, Serialize, Debug)]

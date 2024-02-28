@@ -118,26 +118,17 @@ where
             println!("match changed, should notify to client, {:?}", change);
             let (message, state) = match change {
                 OnMatchStatusChange::OnTimeout(_) => {
-                    let m = MatchStatusChange {
-                        start: false,
-                        end_reason: String::from("timeout"),
-                    };
+                    let m = MatchStatusChange::Stop(String::from("timeout"));
                     let state = ClientState::Unactive;
                     (m, state)
                 }
                 OnMatchStatusChange::OnDeath(_) => {
-                    let m = MatchStatusChange {
-                        start: false,
-                        end_reason: String::from("death"),
-                    };
+                    let m = MatchStatusChange::Stop(String::from("death"));
                     let state = ClientState::Unactive;
                     (m, state)
                 }
-                OnMatchStatusChange::OnStart(_) => {
-                    let m = MatchStatusChange {
-                        start: true,
-                        end_reason: String::from(""),
-                    };
+                OnMatchStatusChange::OnStart(start) => {
+                    let m = MatchStatusChange::Start(start.player1, start.player2);
                     let state = ClientState::InMatch;
                     (m, state)
                 }

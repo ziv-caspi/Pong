@@ -69,7 +69,7 @@ impl Game {
     fn get_player_by_id(&mut self, id: &str) -> Result<&mut Player> {
         if &self.player1.id == id {
             return Ok(&mut self.player1);
-        } else if &self.player1.id == id {
+        } else if &self.player2.id == id {
             return Ok(&mut self.player2);
         } else {
             bail!("could not find player id in this game")

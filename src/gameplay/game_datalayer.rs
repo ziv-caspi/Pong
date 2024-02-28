@@ -36,9 +36,13 @@ impl MemoryGameDatalayer {
 
 impl GameDatalayer for MemoryGameDatalayer {
     fn new_game(&mut self, match_id: String, player1_id: String, player2_id: String) -> GameState {
-        let game = Game::new(match_id, player1_id, player2_id);
+        let game = Game::new(match_id.clone(), player1_id, player2_id);
         let state = game.get_state();
         self.games.push(game);
+        self.on_game_update.invoke(OnGameStateUpdate {
+            id: match_id,
+            state: state.clone(),
+        });
         state
     }
 
