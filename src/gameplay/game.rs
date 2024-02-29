@@ -1,4 +1,8 @@
-use crate::{new_matchmaking::datalayer::User, utils::events::EventTopic};
+use std::{
+    thread,
+    time::{Duration, Instant},
+};
+
 use anyhow::{bail, Result};
 
 use super::{GameState, Player, Position};
@@ -10,10 +14,16 @@ const PLAYER_START_X: u32 = SCREEN_SIZE.0 / 15;
 const PLAYER1_START_X: u32 = PLAYER_START_X;
 const PLAYER2_START_X: u32 = SCREEN_SIZE.0 - PLAYER_START_X;
 
+const COUNTDOWN: u8 = 3;
+const SERVER_FPS: u128 = 120;
+const MILLIS_BETWEEN_FRAMES: u128 = 1000 / SERVER_FPS;
+
 pub struct Game {
     pub match_id: String,
     player1: Player,
     player2: Player,
+    countdown: Countdown,
+    last_frame: Instant,
 }
 
 impl Game {
@@ -34,6 +44,8 @@ impl Game {
                     y: PLAYER_START_Y,
                 },
             },
+            countdown: Countdown::new(),
+            last_frame: Instant::now(),
         }
     }
 
@@ -41,6 +53,7 @@ impl Game {
         GameState {
             player1_pos: self.player1.clone(),
             player2_pos: self.player2.clone(),
+            countdown: self.countdown.current,
         }
     }
 
@@ -66,6 +79,20 @@ impl Game {
         Ok(self.get_state())
     }
 
+    pub fn tick(&mut self) -> Option<GameState> {
+        let diff = Instant::now() - self.last_frame;
+        if diff.as_millis() < MILLIS_BETWEEN_FRAMES {
+            return None;
+        }
+
+        let change = self.countdown.count();
+        if change {
+            return Some(self.get_state());
+        }
+
+        return None;
+    }
+
     fn get_player_by_id(&mut self, id: &str) -> Result<&mut Player> {
         if &self.player1.id == id {
             return Ok(&mut self.player1);
@@ -73,6 +100,36 @@ impl Game {
             return Ok(&mut self.player2);
         } else {
             bail!("could not find player id in this game")
+        }
+    }
+}
+
+struct Countdown {
+    current: u8,
+    last_change: Instant,
+}
+
+impl Countdown {
+    fn new() -> Self {
+        Self {
+            current: COUNTDOWN,
+            last_change: Instant::now(),
+        }
+    }
+
+    fn count(&mut self) -> bool {
+        if self.current == 0 {
+            return false;
+        }
+
+        let passed = Instant::now() - self.last_change;
+        match passed.as_secs() >= 1 {
+            true => {
+                self.current -= 1;
+                self.last_change = Instant::now();
+                return true;
+            }
+            false => false,
         }
     }
 }

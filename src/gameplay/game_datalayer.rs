@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use super::{game::Game, GameState, OnGameStateUpdate};
 use crate::utils::events::EventTopic;
 use anyhow::{bail, Result};
@@ -8,6 +6,7 @@ pub trait GameDatalayer {
     fn get_on_game_change(&self) -> EventTopic<OnGameStateUpdate>;
     fn new_game(&mut self, match_id: String, player1_id: String, player2_id: String) -> GameState;
     fn move_player(&mut self, match_id: &str, player_id: &str, delta: i32) -> Result<()>;
+    fn tick(&mut self);
 }
 
 pub struct MemoryGameDatalayer {
@@ -49,8 +48,8 @@ impl GameDatalayer for MemoryGameDatalayer {
     fn move_player(&mut self, match_id: &str, player_id: &str, delta: i32) -> Result<()> {
         let game = self.get_game_by_id(match_id)?;
 
-        let mut normalized: u32 = 0;
-        let mut up = false;
+        let normalized: u32;
+        let up: bool;
         if delta >= 0 {
             normalized = delta as u32;
             up = true;
@@ -69,5 +68,16 @@ impl GameDatalayer for MemoryGameDatalayer {
 
     fn get_on_game_change(&self) -> EventTopic<OnGameStateUpdate> {
         self.on_game_update.clone()
+    }
+
+    fn tick(&mut self) {
+        for game in &mut self.games {
+            if let Some(state) = game.tick() {
+                self.on_game_update.invoke(OnGameStateUpdate {
+                    id: game.match_id.clone(),
+                    state: state,
+                })
+            }
+        }
     }
 }

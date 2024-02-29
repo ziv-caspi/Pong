@@ -1,5 +1,5 @@
 use crate::{
-    gameplay::SafeGameDatalayer,
+    gameplay::{self, SafeGameDatalayer},
     new_matchmaking::{self, rpc_datalayer::RpcMatchmakingDatalayer},
 };
 
@@ -18,6 +18,7 @@ impl Initializer {
             gameplay.clone(),
             matchmaking.events.on_match_change.clone(),
         );
+        gameplay::background::run_ticker(gameplay.clone());
 
         Initializer {
             matchmaking,

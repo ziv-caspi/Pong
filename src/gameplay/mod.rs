@@ -5,6 +5,7 @@ use anyhow::Result;
 use serde_derive::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
+pub mod background;
 mod game;
 pub mod game_datalayer;
 
@@ -30,6 +31,7 @@ pub struct Position {
 pub struct GameState {
     player1_pos: Player,
     player2_pos: Player,
+    countdown: u8,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -70,5 +72,10 @@ impl GameDatalayer for SafeGameDatalayer {
 
     fn get_on_game_change(&self) -> EventTopic<OnGameStateUpdate> {
         self.on_game_update.clone()
+    }
+
+    fn tick(&mut self) {
+        let mut dl = self.inner.lock().unwrap();
+        dl.tick()
     }
 }
