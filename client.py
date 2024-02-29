@@ -113,12 +113,14 @@ def start_game(id, match_id):
    # pygame setup
    pygame.init()
    screen = pygame.display.set_mode((1280, 720))
+   font = pygame.font.Font('freesansbold.ttf', 40)
    clock = pygame.time.Clock()
    running = True
    dt = 0
 
    player_pos = pygame.Vector2(-100, -100) # player should not be visible until server says so
    oponnent_pos = pygame.Vector2(-100, -100) # player should not be visible until server says so
+   countdown = None
 
    while running:
       for event in pygame.event.get():
@@ -130,6 +132,9 @@ def start_game(id, match_id):
       pygame.draw.rect(surface=screen, color=(136, 242, 139), rect=(player_pos, (10, 150)))
       pygame.draw.rect(surface=screen, color=(255, 255, 255), rect=(oponnent_pos, (10, 150)))
       #pygame.draw.circle(screen, "red", player_pos, 40)
+      if countdown and countdown > 0:
+         text = font.render(str(countdown), True, (255, 255, 255))
+         screen.blit(text, (1280//2, 60))
 
       pos_delta = 300 * dt
       moved = False
@@ -137,10 +142,11 @@ def start_game(id, match_id):
       update = no_updates()
       if update:
          print(update)
-         #'serverPushUpdate': {'gameStateChange': {'id': '68fab15b-b4c6-42c2-8585-a4b609f8d013', 'state': {'player1Pos': {'x': 85, 'y': 355}, 'player2Pos': {'x': 1195, 'y': 360}}}}}
+         #{'serverPushUpdate': {'gameStateChange': {'id': 'bec67293-a507-4bfc-b442-2106ea1218ae', 'state': {'player1Pos': {'id': '640dbe11-b83d-4817-a781-6cd85d304a22', 'position': {'x': 85, 'y': 360}}, 'player2Pos': {'id': '814f00ae-b05b-4e24-afcb-23b3e701f691', 'position': {'x': 1195, 'y': 360}}, 'countdown': 0}}}}
          game_change = update.get('serverPushUpdate').get('gameStateChange')
          if game_change:
             state = game_change['state']
+            countdown = state['countdown']
             player1 = state['player1Pos']
             player2 = state['player2Pos']
             me = None
@@ -156,6 +162,7 @@ def start_game(id, match_id):
             player_pos.x = me['position']['x']
             oponnent_pos.y = oponnent['position']['y']
             oponnent_pos.x = oponnent['position']['x']
+
 
 
       keys = pygame.key.get_pressed()
