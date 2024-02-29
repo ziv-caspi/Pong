@@ -31,6 +31,7 @@ pub struct Position {
 pub struct GameState {
     player1_pos: Player,
     player2_pos: Player,
+    ball_pos: Position,
     countdown: u8,
 }
 

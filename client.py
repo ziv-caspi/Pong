@@ -120,6 +120,7 @@ def start_game(id, match_id):
 
    player_pos = pygame.Vector2(-100, -100) # player should not be visible until server says so
    oponnent_pos = pygame.Vector2(-100, -100) # player should not be visible until server says so
+   ball_pos = pygame.Vector2(-100, -100) # ball should not be visible until server says so
    countdown = None
 
    while running:
@@ -131,7 +132,7 @@ def start_game(id, match_id):
 
       pygame.draw.rect(surface=screen, color=(136, 242, 139), rect=(player_pos, (10, 150)))
       pygame.draw.rect(surface=screen, color=(255, 255, 255), rect=(oponnent_pos, (10, 150)))
-      #pygame.draw.circle(screen, "red", player_pos, 40)
+      pygame.draw.circle(screen, "red", ball_pos, 40)
       if countdown and countdown > 0:
          text = font.render(str(countdown), True, (255, 255, 255))
          screen.blit(text, (1280//2, 60))
@@ -142,13 +143,14 @@ def start_game(id, match_id):
       update = no_updates()
       if update:
          print(update)
-         #{'serverPushUpdate': {'gameStateChange': {'id': 'bec67293-a507-4bfc-b442-2106ea1218ae', 'state': {'player1Pos': {'id': '640dbe11-b83d-4817-a781-6cd85d304a22', 'position': {'x': 85, 'y': 360}}, 'player2Pos': {'id': '814f00ae-b05b-4e24-afcb-23b3e701f691', 'position': {'x': 1195, 'y': 360}}, 'countdown': 0}}}}
+         #{'serverPushUpdate': {'gameStateChange': {'id': '452aba90-373e-4233-9fd0-8679d7650c11', 'state': {'player1Pos': {'id': 'f074c830-f203-4dc9-a666-97cd61562ce9', 'position': {'x': 85, 'y': 360}}, 'player2Pos': {'id': '545ce55a-6bec-470e-b9d8-defca91231b7', 'position': {'x': 1195, 'y': 360}}, 'ballPos': {'x': 0, 'y': 0}, 'countdown': 0}}}}
          game_change = update.get('serverPushUpdate').get('gameStateChange')
          if game_change:
             state = game_change['state']
             countdown = state['countdown']
             player1 = state['player1Pos']
             player2 = state['player2Pos']
+            ball = state['ballPos']
             me = None
             oponnent = None
             if player1['id'] == id:
@@ -162,6 +164,8 @@ def start_game(id, match_id):
             player_pos.x = me['position']['x']
             oponnent_pos.y = oponnent['position']['y']
             oponnent_pos.x = oponnent['position']['x']
+            ball_pos.x = ball['x']
+            ball_pos.y = ball['y']
 
 
 

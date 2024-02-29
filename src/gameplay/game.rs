@@ -22,6 +22,7 @@ pub struct Game {
     pub match_id: String,
     player1: Player,
     player2: Player,
+    ball: Position,
     countdown: Countdown,
     last_frame: Instant,
 }
@@ -44,6 +45,7 @@ impl Game {
                     y: PLAYER_START_Y,
                 },
             },
+            ball: Position { x: 0, y: 0 },
             countdown: Countdown::new(),
             last_frame: Instant::now(),
         }
@@ -53,6 +55,7 @@ impl Game {
         GameState {
             player1_pos: self.player1.clone(),
             player2_pos: self.player2.clone(),
+            ball_pos: self.ball.clone(),
             countdown: self.countdown.current,
         }
     }
