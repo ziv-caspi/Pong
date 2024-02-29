@@ -28,10 +28,18 @@ pub struct Position {
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[derive(Clone)]
+pub struct BallInfo {
+    position: Position,
+    radius: u8,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[derive(Clone)]
 pub struct GameState {
     player1_pos: Player,
     player2_pos: Player,
-    ball_pos: Position,
+    ball_pos: BallInfo,
     countdown: u8,
 }
 

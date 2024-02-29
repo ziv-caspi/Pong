@@ -55,7 +55,10 @@ impl Game {
         GameState {
             player1_pos: self.player1.clone(),
             player2_pos: self.player2.clone(),
-            ball_pos: self.ball.position.clone(),
+            ball_pos: super::BallInfo {
+                position: self.ball.position.clone(),
+                radius: self.ball.radius,
+            },
             countdown: self.countdown.current,
         }
     }
@@ -150,6 +153,7 @@ struct Ball {
     position: Position,
     is_down: bool,
     is_right: bool,
+    radius: u8,
 }
 
 impl Ball {
@@ -161,6 +165,7 @@ impl Ball {
             },
             is_down: true,
             is_right: true,
+            radius: 20,
         }
     }
 }
