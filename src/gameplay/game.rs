@@ -90,22 +90,22 @@ impl Game {
         if diff.as_millis() < MILLIS_BETWEEN_FRAMES {
             return None;
         }
-
-        let change = self.countdown.count();
-
-        if self.ball.position.y <= 100 {
-            self.ball.is_down = true
-        } else if self.ball.position.y >= 600 {
-            self.ball.is_down = false;
+        let count_change = self.countdown.count();
+        if count_change {
+            return Some(self.get_state());
         }
 
-        if self.ball.is_down {
-            self.ball.position.y += 2;
+        if self.countdown.current != 0 {
+            return None;
+        }
+
+        let ball_change = self.ball.do_move();
+
+        if ball_change {
+            return Some(self.get_state());
         } else {
-            self.ball.position.y -= 2;
+            return None;
         }
-
-        return Some(self.get_state());
     }
 
     fn get_player_by_id(&mut self, id: &str) -> Result<&mut Player> {
@@ -167,5 +167,21 @@ impl Ball {
             is_right: true,
             radius: 20,
         }
+    }
+
+    fn do_move(&mut self) -> bool {
+        if self.position.y <= 100 {
+            self.is_down = true
+        } else if self.position.y >= 600 {
+            self.is_down = false;
+        }
+
+        if self.is_down {
+            self.position.y += 2;
+        } else {
+            self.position.y -= 2;
+        }
+
+        true
     }
 }
