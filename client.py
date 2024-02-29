@@ -132,7 +132,7 @@ def start_game(id, match_id):
 
       pygame.draw.rect(surface=screen, color=(136, 242, 139), rect=(player_pos, (10, 150)))
       pygame.draw.rect(surface=screen, color=(255, 255, 255), rect=(oponnent_pos, (10, 150)))
-      pygame.draw.circle(screen, "red", ball_pos, 40)
+      pygame.draw.circle(screen, "red", ball_pos, 30)
       if countdown and countdown > 0:
          text = font.render(str(countdown), True, (255, 255, 255))
          screen.blit(text, (1280//2, 60))

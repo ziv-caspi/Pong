@@ -22,7 +22,7 @@ pub struct Game {
     pub match_id: String,
     player1: Player,
     player2: Player,
-    ball: Position,
+    ball: Ball,
     countdown: Countdown,
     last_frame: Instant,
 }
@@ -45,7 +45,7 @@ impl Game {
                     y: PLAYER_START_Y,
                 },
             },
-            ball: Position { x: 0, y: 0 },
+            ball: Ball::new(),
             countdown: Countdown::new(),
             last_frame: Instant::now(),
         }
@@ -55,7 +55,7 @@ impl Game {
         GameState {
             player1_pos: self.player1.clone(),
             player2_pos: self.player2.clone(),
-            ball_pos: self.ball.clone(),
+            ball_pos: self.ball.position.clone(),
             countdown: self.countdown.current,
         }
     }
@@ -89,11 +89,20 @@ impl Game {
         }
 
         let change = self.countdown.count();
-        if change {
-            return Some(self.get_state());
+
+        if self.ball.position.y <= 100 {
+            self.ball.is_down = true
+        } else if self.ball.position.y >= 600 {
+            self.ball.is_down = false;
         }
 
-        return None;
+        if self.ball.is_down {
+            self.ball.position.y += 2;
+        } else {
+            self.ball.position.y -= 2;
+        }
+
+        return Some(self.get_state());
     }
 
     fn get_player_by_id(&mut self, id: &str) -> Result<&mut Player> {
@@ -133,6 +142,25 @@ impl Countdown {
                 return true;
             }
             false => false,
+        }
+    }
+}
+
+struct Ball {
+    position: Position,
+    is_down: bool,
+    is_right: bool,
+}
+
+impl Ball {
+    fn new() -> Self {
+        Self {
+            position: Position {
+                x: SCREEN_SIZE.0 / 2,
+                y: SCREEN_SIZE.1 / 2,
+            },
+            is_down: true,
+            is_right: true,
         }
     }
 }
