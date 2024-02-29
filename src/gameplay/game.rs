@@ -170,9 +170,9 @@ impl Ball {
     }
 
     fn do_move(&mut self) -> bool {
-        if self.position.y <= 100 {
+        if self.position.y <= 0 + self.radius as u32 {
             self.is_down = true
-        } else if self.position.y >= 600 {
+        } else if self.position.y >= SCREEN_SIZE.1 - self.radius as u32 {
             self.is_down = false;
         }
 
