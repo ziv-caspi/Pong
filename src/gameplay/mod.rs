@@ -1,46 +1,15 @@
 use crate::utils::events::EventTopic;
 
-use self::game_datalayer::{GameDatalayer, MemoryGameDatalayer};
+use self::{
+    game::{GameState, OnGameStateUpdate},
+    game_datalayer::{GameDatalayer, MemoryGameDatalayer},
+};
 use anyhow::Result;
-use serde_derive::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
 pub mod background;
-mod game;
+pub mod game;
 pub mod game_datalayer;
-
-#[derive(Deserialize, Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[derive(Clone)]
-pub struct Player {
-    id: String,
-    position: Position,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[derive(Clone)]
-pub struct Position {
-    x: u32,
-    y: u32,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[derive(Clone)]
-pub struct GameState {
-    player1_pos: Player,
-    player2_pos: Player,
-    countdown: u8,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[derive(Clone)]
-pub struct OnGameStateUpdate {
-    pub id: String,
-    pub state: GameState,
-}
 
 #[derive(Clone)]
 pub struct SafeGameDatalayer {

@@ -1,6 +1,6 @@
 use serde_derive::{Deserialize, Serialize};
 
-use crate::gameplay::OnGameStateUpdate;
+use crate::gameplay::game::OnGameStateUpdate;
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]

@@ -2,7 +2,7 @@ use crossbeam::channel::{Receiver, RecvError};
 use uuid::Uuid;
 
 use crate::{
-    gameplay::{game_datalayer::GameDatalayer, OnGameStateUpdate},
+    gameplay::{game::OnGameStateUpdate, game_datalayer::GameDatalayer},
     new_matchmaking::{
         datalayer::{OnMatchStatusChange, OnNewMatch, User},
         rpc_datalayer::RpcMatchmakingDatalayer,
