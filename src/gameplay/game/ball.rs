@@ -24,22 +24,33 @@ impl Ball {
     }
 
     pub fn do_move(&mut self) -> bool {
+        let v_moved = self.vertical_move();
+        let h_moved = self.horizontal_move();
+
+        h_moved || v_moved
+    }
+
+    fn vertical_move(&mut self) -> bool {
         if self.position.y <= 0 + self.radius as u32 {
             self.is_down = true
         } else if self.position.y >= self.screen_size.1 - self.radius as u32 {
             self.is_down = false;
         }
 
-        if self.position.x >= self.screen_size.0 - self.radius as u32 {
-            self.is_right = false;
-        } else if self.position.x <= 0 + self.radius as u32 {
-            self.is_right = true;
-        }
-
         if self.is_down {
             self.position.y += SPEED;
         } else {
             self.position.y -= SPEED;
+        }
+
+        true
+    }
+
+    fn horizontal_move(&mut self) -> bool {
+        if self.position.x >= self.screen_size.0 - self.radius as u32 {
+            self.is_right = false;
+        } else if self.position.x <= 0 + self.radius as u32 {
+            self.is_right = true;
         }
 
         if self.is_right {
