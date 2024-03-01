@@ -1,4 +1,4 @@
-use super::Position;
+use super::{Player, Position};
 const SPEED: u32 = 4;
 
 pub struct Ball {
@@ -23,10 +23,10 @@ impl Ball {
         }
     }
 
-    pub fn do_move(&mut self, player1: &Position, player2: &Position) -> bool {
-        let right_player: &Position;
-        let left_player: &Position;
-        if player1.x > player2.x {
+    pub fn do_move(&mut self, player1: &Player, player2: &Player) -> bool {
+        let right_player: &Player;
+        let left_player: &Player;
+        if player1.position.x > player2.position.x {
             right_player = player1;
             left_player = player2;
         } else {
@@ -56,7 +56,7 @@ impl Ball {
         true
     }
 
-    fn horizontal_move(&mut self, left_player: &Position, right_player: &Position) -> bool {
+    fn horizontal_move(&mut self, left_player: &Player, right_player: &Player) -> bool {
         if self.position.x >= self.screen_size.0 - self.radius as u32 {
             self.is_right = false;
         } else if self.position.x <= 0 + self.radius as u32 {
@@ -65,7 +65,7 @@ impl Ball {
 
         let right = self.position.x + self.radius;
         let left = self.position.x - self.radius;
-        if right >= right_player.x || left <= left_player.x {
+        if right >= right_player.position.x || left <= left_player.position.x {
             self.is_right = !self.is_right;
         }
 

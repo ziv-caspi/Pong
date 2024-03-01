@@ -9,6 +9,7 @@ use serde_derive::{Deserialize, Serialize};
 pub struct Player {
     id: String,
     position: Position,
+    dimensions: (u32, u32),
 }
 
 #[derive(Deserialize, Serialize, Debug)]
