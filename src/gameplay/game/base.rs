@@ -4,6 +4,7 @@ use std::time::Instant;
 use super::{ball::Ball, countdown::Countdown, GameState, Player, Position};
 
 const SCREEN_SIZE: (u32, u32) = (1280, 720);
+const PLAYER_SIZE: (u32, u32) = (10, 150);
 const PLAYER_START_Y: u32 = SCREEN_SIZE.1 / 2;
 const PLAYER_START_X: u32 = SCREEN_SIZE.0 / 15;
 
@@ -32,6 +33,7 @@ impl Game {
                     x: PLAYER1_START_X,
                     y: PLAYER_START_Y,
                 },
+                dimensions: PLAYER_SIZE,
             },
             player2: Player {
                 id: player2,
@@ -39,6 +41,7 @@ impl Game {
                     x: PLAYER2_START_X,
                     y: PLAYER_START_Y,
                 },
+                dimensions: PLAYER_SIZE,
             },
             ball: Ball::new(SCREEN_SIZE),
             countdown: Countdown::new(),
@@ -52,7 +55,7 @@ impl Game {
             player2_pos: self.player2.clone(),
             ball_pos: super::BallInfo {
                 position: self.ball.position.clone(),
-                radius: self.ball.radius,
+                radius: self.ball.radius as u8,
             },
             countdown: self.countdown.current,
         }
@@ -94,7 +97,7 @@ impl Game {
             return None;
         }
 
-        let ball_change = self.ball.do_move();
+        let ball_change = self.ball.do_move(&self.player1, &self.player2);
 
         if ball_change {
             return Some(self.get_state());
