@@ -1,11 +1,7 @@
-use std::{
-    thread,
-    time::{Duration, Instant},
-};
-
 use anyhow::{bail, Result};
+use std::time::Instant;
 
-use super::{GameState, Player, Position};
+use super::{ball::Ball, countdown::Countdown, GameState, Player, Position};
 
 const SCREEN_SIZE: (u32, u32) = (1280, 720);
 const PLAYER_START_Y: u32 = SCREEN_SIZE.1 / 2;
@@ -14,7 +10,6 @@ const PLAYER_START_X: u32 = SCREEN_SIZE.0 / 15;
 const PLAYER1_START_X: u32 = PLAYER_START_X;
 const PLAYER2_START_X: u32 = SCREEN_SIZE.0 - PLAYER_START_X;
 
-const COUNTDOWN: u8 = 3;
 const SERVER_FPS: u128 = 120;
 const MILLIS_BETWEEN_FRAMES: u128 = 1000 / SERVER_FPS;
 
@@ -116,84 +111,5 @@ impl Game {
         } else {
             bail!("could not find player id in this game")
         }
-    }
-}
-
-struct Countdown {
-    current: u8,
-    last_change: Instant,
-}
-
-impl Countdown {
-    fn new() -> Self {
-        Self {
-            current: COUNTDOWN,
-            last_change: Instant::now(),
-        }
-    }
-
-    fn count(&mut self) -> bool {
-        if self.current == 0 {
-            return false;
-        }
-
-        let passed = Instant::now() - self.last_change;
-        match passed.as_secs() >= 1 {
-            true => {
-                self.current -= 1;
-                self.last_change = Instant::now();
-                return true;
-            }
-            false => false,
-        }
-    }
-}
-
-struct Ball {
-    position: Position,
-    is_down: bool,
-    is_right: bool,
-    radius: u8,
-}
-
-impl Ball {
-    fn new() -> Self {
-        Self {
-            position: Position {
-                x: SCREEN_SIZE.0 / 2,
-                y: SCREEN_SIZE.1 / 2,
-            },
-            is_down: true,
-            is_right: true,
-            radius: 20,
-        }
-    }
-
-    fn do_move(&mut self) -> bool {
-        if self.position.y <= 0 + self.radius as u32 {
-            self.is_down = true
-        } else if self.position.y >= SCREEN_SIZE.1 - self.radius as u32 {
-            self.is_down = false;
-        }
-
-        if self.position.x >= SCREEN_SIZE.0 - self.radius as u32 {
-            self.is_right = false;
-        } else if self.position.x <= 0 + self.radius as u32 {
-            self.is_right = true;
-        }
-
-        if self.is_down {
-            self.position.y += 2;
-        } else {
-            self.position.y -= 2;
-        }
-
-        if self.is_right {
-            self.position.x += 2;
-        } else {
-            self.position.x -= 2;
-        }
-
-        true
     }
 }

@@ -1,4 +1,4 @@
-use super::{game::Game, GameState, OnGameStateUpdate};
+use super::{game::base::Game, GameState, OnGameStateUpdate};
 use crate::utils::events::EventTopic;
 use anyhow::{bail, Result};
 
