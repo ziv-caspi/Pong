@@ -10,7 +10,7 @@ const PLAYER_START_X: u32 = SCREEN_SIZE.0 / 15;
 const PLAYER1_START_X: u32 = PLAYER_START_X;
 const PLAYER2_START_X: u32 = SCREEN_SIZE.0 - PLAYER_START_X;
 
-const SERVER_FPS: u128 = 120;
+const SERVER_FPS: u128 = 200;
 const MILLIS_BETWEEN_FRAMES: u128 = 1000 / SERVER_FPS;
 
 pub struct Game {
@@ -40,7 +40,7 @@ impl Game {
                     y: PLAYER_START_Y,
                 },
             },
-            ball: Ball::new(),
+            ball: Ball::new(SCREEN_SIZE),
             countdown: Countdown::new(),
             last_frame: Instant::now(),
         }
