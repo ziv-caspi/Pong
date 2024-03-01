@@ -176,10 +176,22 @@ impl Ball {
             self.is_down = false;
         }
 
+        if self.position.x >= SCREEN_SIZE.0 - self.radius as u32 {
+            self.is_right = false;
+        } else if self.position.x <= 0 + self.radius as u32 {
+            self.is_right = true;
+        }
+
         if self.is_down {
             self.position.y += 2;
         } else {
             self.position.y -= 2;
+        }
+
+        if self.is_right {
+            self.position.x += 2;
+        } else {
+            self.position.x -= 2;
         }
 
         true
