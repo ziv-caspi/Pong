@@ -23,7 +23,7 @@ impl Ball {
         }
     }
 
-    pub fn do_move(&mut self) -> bool {
+    pub fn do_move(&mut self, player1: &Position, player2: &Position) -> bool {
         let v_moved = self.vertical_move();
         let h_moved = self.horizontal_move();
 

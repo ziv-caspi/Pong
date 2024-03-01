@@ -94,7 +94,9 @@ impl Game {
             return None;
         }
 
-        let ball_change = self.ball.do_move();
+        let ball_change = self
+            .ball
+            .do_move(&self.player1.position, &self.player2.position);
 
         if ball_change {
             return Some(self.get_state());
