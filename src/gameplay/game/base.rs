@@ -52,7 +52,7 @@ impl Game {
             player2_pos: self.player2.clone(),
             ball_pos: super::BallInfo {
                 position: self.ball.position.clone(),
-                radius: self.ball.radius,
+                radius: self.ball.radius as u8,
             },
             countdown: self.countdown.current,
         }
