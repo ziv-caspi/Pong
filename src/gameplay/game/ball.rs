@@ -65,7 +65,17 @@ impl Ball {
 
         let right = self.position.x + self.radius;
         let left = self.position.x - self.radius;
-        if right >= right_player.position.x || left <= left_player.position.x {
+        let top = self.position.y - self.radius;
+        let bottom = self.position.y + self.radius;
+
+        let collides_with_right = right >= (right_player.position.x - right_player.dimensions.0)
+            && bottom >= right_player.position.y
+            && top <= right_player.position.y + right_player.dimensions.1;
+        let collides_with_left = left <= (left_player.position.x + left_player.dimensions.0)
+            && bottom >= left_player.position.y
+            && top <= left_player.position.y + left_player.dimensions.1;
+
+        if collides_with_right || collides_with_left {
             self.is_right = !self.is_right;
         }
 
