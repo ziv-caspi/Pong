@@ -1,11 +1,13 @@
 use super::{Player, Position};
-const SPEED: u32 = 4;
+const INITIAL_SPEED: u32 = 4;
+const MAX__SPEED: u32 = 30;
 
 pub struct Ball {
     pub position: Position,
     pub radius: u32,
     is_down: bool,
     is_right: bool,
+    speed: u32,
     screen_size: (u32, u32),
 }
 
@@ -19,6 +21,7 @@ impl Ball {
             is_down: true,
             is_right: true,
             radius: 20,
+            speed: INITIAL_SPEED,
             screen_size,
         }
     }
@@ -40,9 +43,9 @@ impl Ball {
         }
 
         if self.is_down {
-            self.position.y += SPEED;
+            self.position.y += self.speed;
         } else {
-            self.position.y -= SPEED;
+            self.position.y = self.position.y.checked_sub(self.speed).unwrap_or(0);
         }
 
         true
@@ -59,12 +62,15 @@ impl Ball {
             || self.collides_with_player(left_player, false)
         {
             self.is_right = !self.is_right;
+            if self.speed <= MAX__SPEED {
+                self.speed += 2;
+            }
         }
 
         if self.is_right {
-            self.position.x += SPEED;
+            self.position.x += self.speed;
         } else {
-            self.position.x -= SPEED;
+            self.position.x = self.position.x.checked_sub(self.speed).unwrap_or(0);
         }
 
         true
@@ -72,8 +78,8 @@ impl Ball {
 
     fn collides_with_player(&self, player: &Player, is_right: bool) -> bool {
         let right = self.position.x + self.radius;
-        let left = self.position.x - self.radius;
-        let top = self.position.y - self.radius;
+        let left = self.position.x.checked_sub(self.radius).unwrap_or(0);
+        let top = self.position.y.checked_sub(self.radius).unwrap_or(0);
         let bottom = self.position.y + self.radius;
 
         let horizontal_collision: bool;
