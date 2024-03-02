@@ -98,15 +98,11 @@ def move_player(pos_delta, match_id):
       }
    }
    req = prepare_request(move_player_request)
-   print('sending move, socket:', s, 'req:', req)
    s.send(req)
    response = s.recv(1024)
-   print(response)
    parsed = parse_response(response)
-   print('move player response:', parsed)
 
 def move(pos_delta, match_id):
-    print(pos_delta)
     move_player(pos_delta, match_id)
 
 def start_game(id, match_id):
@@ -143,7 +139,6 @@ def start_game(id, match_id):
       
       update = no_updates()
       if update:
-         print(update)
          #{'serverPushUpdate': {'gameStateChange': {'id': '452aba90-373e-4233-9fd0-8679d7650c11', 'state': {'player1Pos': {'id': 'f074c830-f203-4dc9-a666-97cd61562ce9', 'position': {'x': 85, 'y': 360}}, 'player2Pos': {'id': '545ce55a-6bec-470e-b9d8-defca91231b7', 'position': {'x': 1195, 'y': 360}}, 'ballPos': {'x': 0, 'y': 0}, 'countdown': 0}}}}
          game_change = update.get('serverPushUpdate').get('gameStateChange')
          if game_change:

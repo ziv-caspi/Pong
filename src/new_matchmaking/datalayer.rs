@@ -140,7 +140,6 @@ impl MatchmakingDataLayer {
         let m = &mut self.matches[i];
         let mut found = false;
         for player in &m.potential_players {
-            println!("comparing: {} with {}", player, player_id);
             if player.to_owned() == player_id {
                 found = true;
                 break;
