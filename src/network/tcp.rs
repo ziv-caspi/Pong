@@ -14,7 +14,7 @@ use std::{
     thread,
 };
 
-use super::session::ClientSession;
+use crate::runner::session::ClientSession;
 
 pub fn start() {
     let user_example = UserMessage::MovePlayerRequest(MovePlayerRequest {
