@@ -77,6 +77,13 @@ impl Ball {
     }
 
     fn collides_with_player(&self, player: &Player, is_right: bool) -> bool {
+        if is_right && !self.is_right {
+            return false;
+        }
+        if !is_right && self.is_right {
+            return false;
+        }
+
         let right = self.position.x + self.radius;
         let left = self.position.x.checked_sub(self.radius).unwrap_or(0);
         let top = self.position.y.checked_sub(self.radius).unwrap_or(0);
