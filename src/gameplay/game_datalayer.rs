@@ -1,13 +1,6 @@
-use super::{game::base::Game, GameState, OnGameStateUpdate};
+use super::{game::base::Game, GameDatalayer, GameState, OnGameStateUpdate};
 use crate::utils::events::EventTopic;
 use anyhow::{bail, Result};
-
-pub trait GameDatalayer {
-    fn get_on_game_change(&self) -> EventTopic<OnGameStateUpdate>;
-    fn new_game(&mut self, match_id: String, player1_id: String, player2_id: String) -> GameState;
-    fn move_player(&mut self, match_id: &str, player_id: &str, delta: i32) -> Result<()>;
-    fn tick(&mut self);
-}
 
 pub struct MemoryGameDatalayer {
     games: Vec<Game>,
@@ -16,10 +9,7 @@ pub struct MemoryGameDatalayer {
 
 impl MemoryGameDatalayer {
     pub fn new() -> Self {
-        Self {
-            games: vec![],
-            on_game_update: EventTopic::new(),
-        }
+        Self { games: vec![], on_game_update: EventTopic::new() }
     }
 
     fn get_game_by_id(&mut self, id: &str) -> Result<&mut Game> {
@@ -38,10 +28,7 @@ impl GameDatalayer for MemoryGameDatalayer {
         let game = Game::new(match_id.clone(), player1_id, player2_id);
         let state = game.get_state();
         self.games.push(game);
-        self.on_game_update.invoke(OnGameStateUpdate {
-            id: match_id,
-            state: state.clone(),
-        });
+        self.on_game_update.invoke(OnGameStateUpdate { id: match_id, state: state.clone() });
         state
     }
 
@@ -59,10 +46,7 @@ impl GameDatalayer for MemoryGameDatalayer {
         }
 
         let state = game.move_player(player_id, normalized, up)?;
-        self.on_game_update.invoke(OnGameStateUpdate {
-            id: match_id.to_owned(),
-            state: state,
-        });
+        self.on_game_update.invoke(OnGameStateUpdate { id: match_id.to_owned(), state: state });
         Ok(())
     }
 
@@ -73,10 +57,8 @@ impl GameDatalayer for MemoryGameDatalayer {
     fn tick(&mut self) {
         for game in &mut self.games {
             if let Some(state) = game.tick() {
-                self.on_game_update.invoke(OnGameStateUpdate {
-                    id: game.match_id.clone(),
-                    state: state,
-                })
+                self.on_game_update
+                    .invoke(OnGameStateUpdate { id: game.match_id.clone(), state: state })
             }
         }
     }

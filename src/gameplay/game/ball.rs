@@ -14,10 +14,7 @@ pub struct Ball {
 impl Ball {
     pub fn new(screen_size: (u32, u32)) -> Self {
         Self {
-            position: Position {
-                x: screen_size.0 / 2,
-                y: screen_size.1 / 2,
-            },
+            position: Position { x: screen_size.0 / 2, y: screen_size.1 / 2 },
             is_down: true,
             is_right: true,
             radius: 20,

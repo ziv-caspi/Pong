@@ -2,7 +2,7 @@ use crossbeam::channel::{Receiver, RecvError};
 use uuid::Uuid;
 
 use crate::{
-    gameplay::{game::OnGameStateUpdate, game_datalayer::GameDatalayer},
+    gameplay::{game::OnGameStateUpdate, GameDatalayer},
     new_matchmaking::{
         datalayer::{OnMatchStatusChange, OnNewMatch, User},
         rpc_datalayer::RpcMatchmakingDatalayer,
@@ -63,9 +63,7 @@ where
         if let Some(id) = &self.id {
             _ = self.matchmaking.remove_from_queue(id.to_owned());
             if let Some(match_id) = &self.current_match {
-                _ = self
-                    .matchmaking
-                    .remove_from_match(match_id.to_owned(), id.to_owned());
+                _ = self.matchmaking.remove_from_match(match_id.to_owned(), id.to_owned());
             }
         }
     }
@@ -176,10 +174,7 @@ where
         request: &super::messages::QueueUpRequest,
     ) -> (ServerMessage, Option<ClientState>) {
         let id = Uuid::new_v4();
-        let user = User {
-            id: id.to_string(),
-            nickname: request.nickname.to_owned(),
-        };
+        let user = User { id: id.to_string(), nickname: request.nickname.to_owned() };
 
         match self.matchmaking.register(user) {
             Ok(_) => {
@@ -233,15 +228,10 @@ where
         let result = self
             .matchmaking
             .mark_player_as_ready(match_id.to_owned(), user_id.to_owned())
-            .map(|_| JoinLobbyResponse {
-                match_id: match_id.to_owned(),
-            })
+            .map(|_| JoinLobbyResponse { match_id: match_id.to_owned() })
             .map_err(|e| e.to_string());
 
-        (
-            ServerMessage::JoinLobbyResponse(result),
-            Some(ClientState::InMatchLobby),
-        )
+        (ServerMessage::JoinLobbyResponse(result), Some(ClientState::InMatchLobby))
     }
 
     fn move_player(&mut self, request: &MovePlayerRequest) -> (ServerMessage, Option<ClientState>) {
@@ -257,10 +247,7 @@ where
             }
         };
 
-        match self
-            .gameplay
-            .move_player(&request.match_id, user_id, request.y_delta)
-        {
+        match self.gameplay.move_player(&request.match_id, user_id, request.y_delta) {
             Ok(_) => (
                 ServerMessage::MovePlayerResponse(Ok(MovePlayerResponse {
                     match_id: request.match_id.to_owned(),

@@ -1,9 +1,6 @@
 use std::{thread, time::Duration};
 
-use crate::{
-    gameplay::{game_datalayer::GameDatalayer, SafeGameDatalayer},
-    utils::events::EventTopic,
-};
+use crate::{gameplay::GameDatalayer, gameplay::SafeGameDatalayer, utils::events::EventTopic};
 
 use super::{datalayer::OnMatchStatusChange, rpc_datalayer::RpcMatchmakingDatalayer};
 
