@@ -13,7 +13,7 @@ use websocket::{
 pub fn start() {
     let initializer = Initializer::init();
     let server = Server::bind("0.0.0.0:5000").unwrap();
-    println!("websocket server listening on 127.0.0.1:1234");
+    println!("websocket server listening on 0.0.0.0:5000");
 
     for connection in server.filter_map(Result::ok) {
         let api = initializer.get_matchmaking();

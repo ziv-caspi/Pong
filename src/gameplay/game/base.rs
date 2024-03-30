@@ -3,10 +3,10 @@ use std::time::Instant;
 
 use super::{ball::Ball, countdown::Countdown, GameState, Player, Position};
 
-const SCREEN_SIZE: (u32, u32) = (1280, 720);
-const PLAYER_SIZE: (u32, u32) = (10, 150);
+const SCREEN_SIZE: (u32, u32) = (667, 300);
+const PLAYER_SIZE: (u32, u32) = (5, 75);
 const PLAYER_START_Y: u32 = SCREEN_SIZE.1 / 2;
-const PLAYER_START_X: u32 = SCREEN_SIZE.0 / 15;
+const PLAYER_START_X: u32 = SCREEN_SIZE.0 / 8;
 
 const PLAYER1_START_X: u32 = PLAYER_START_X;
 const PLAYER2_START_X: u32 = SCREEN_SIZE.0 - PLAYER_START_X;
@@ -29,18 +29,12 @@ impl Game {
             match_id,
             player1: Player {
                 id: player1,
-                position: Position {
-                    x: PLAYER1_START_X,
-                    y: PLAYER_START_Y,
-                },
+                position: Position { x: PLAYER1_START_X, y: PLAYER_START_Y },
                 dimensions: PLAYER_SIZE,
             },
             player2: Player {
                 id: player2,
-                position: Position {
-                    x: PLAYER2_START_X,
-                    y: PLAYER_START_Y,
-                },
+                position: Position { x: PLAYER2_START_X, y: PLAYER_START_Y },
                 dimensions: PLAYER_SIZE,
             },
             ball: Ball::new(SCREEN_SIZE),

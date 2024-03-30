@@ -1,16 +1,23 @@
 <script lang="ts">
-  import { SendUserMessage } from "$lib/api";
+  import { SendUserMessage, WaitForMatchUpdate } from "$lib/api";
   export let ws: WebSocket;
+  export let onMatchEnter: (matchId: string, playerId: string) => void;
 
   let nickname: string;
+  let id: string | undefined = undefined;
   let waiting = false;
 
   const sendQueueUp = async () => {
     let response = await SendUserMessage(ws, {
       queueUpRequest: { nickname },
     });
-    console.log(response);
+    id = response.queueUpResponse!.Ok.id;
+    console.log(id);
     waiting = true;
+    console.log("waiting for message");
+    const match = await WaitForMatchUpdate(ws);
+    waiting = false;
+    onMatchEnter(match.matchId, id);
   };
 </script>
 

@@ -17,7 +17,7 @@ impl Ball {
             position: Position { x: screen_size.0 / 2, y: screen_size.1 / 2 },
             is_down: true,
             is_right: true,
-            radius: 20,
+            radius: 8,
             speed: INITIAL_SPEED,
             screen_size,
         }
@@ -59,9 +59,9 @@ impl Ball {
             || self.collides_with_player(left_player, false)
         {
             self.is_right = !self.is_right;
-            if self.speed <= MAX__SPEED {
-                self.speed += 2;
-            }
+            // if self.speed <= MAX__SPEED {
+            //     self.speed += 2;
+            // }
         }
 
         if self.is_right {
