@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+body {
+    height: 100vh;
+    width: 100vw;
+    /* overflow: hidden;
+    filter: blur(npx); */
+}
+
+html {
+    touch-action: manipulation;
+}

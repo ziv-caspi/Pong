@@ -5,5 +5,5 @@ mod runner;
 mod utils;
 
 fn main() {
-    network::tcp::start();
+    network::websocket::start();
 }
