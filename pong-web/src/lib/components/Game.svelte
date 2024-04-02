@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { SendNoUpdates, SendUserMessage } from "$lib/api";
+  import {
+    SendNoUpdates,
+    SendUserMessage,
+    SubscribeToServerMessages,
+  } from "$lib/api";
   import type {
     Dimensions,
     GameState,
@@ -23,7 +27,18 @@
   let movement: Movement = "none";
 
   onMount(async () => {
-    callbackGameLoop((state) => {
+    // callbackGameLoop((state) => {
+    //   const positions = getPositions(state.state);
+    //   playerPosition = positions.player;
+    //   oponentPosition = positions.oponent;
+    //   ballPosition = state.state.ballPos.position;
+    //   ballRadius = state.state.ballPos.radius;
+    //   countdown = state.state.countdown;
+    //   playerDimensions = state.state.player1Pos.dimensions;
+    // });
+    SubscribeToServerMessages(ws, (message) => {
+      const state = message.serverPushUpdate?.gameStateChange;
+      if (!state) return;
       const positions = getPositions(state.state);
       playerPosition = positions.player;
       oponentPosition = positions.oponent;

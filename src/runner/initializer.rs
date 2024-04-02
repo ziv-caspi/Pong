@@ -1,6 +1,5 @@
 use crate::{
     gameplay::{self, SafeGameDatalayer},
-    ioc,
     new_matchmaking::{self, rpc_datalayer::RpcMatchmakingDatalayer},
     runner::session::ClientSession,
 };

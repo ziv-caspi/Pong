@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { SendUserMessage, WaitForMatchUpdate } from "$lib/api";
+  import { RecvResponse, SendUserMessage, WaitForMatchUpdate } from "$lib/api";
   export let ws: WebSocket;
   export let onMatchEnter: (matchId: string, playerId: string) => void;
 
@@ -11,13 +11,25 @@
     let response = await SendUserMessage(ws, {
       queueUpRequest: { nickname },
     });
-    id = response.queueUpResponse!.Ok.id;
-    console.log(id);
-    waiting = true;
-    console.log("waiting for message");
-    const match = await WaitForMatchUpdate(ws);
-    waiting = false;
-    onMatchEnter(match.matchId, id);
+    console.log(response);
+
+    id = response.queueUpResponse?.Ok.id;
+    let matchId = response.serverPushUpdate?.potentialMatchUpdate?.matchId;
+    if (id) {
+      console.log(id);
+      waiting = true;
+      console.log("waiting for message");
+      const match = await WaitForMatchUpdate(ws);
+      waiting = false;
+      onMatchEnter(match.matchId, id);
+    } else if (matchId) {
+      // messages arent in order
+      let response = await RecvResponse(ws);
+      id = response.queueUpResponse?.Ok.id;
+      console.log(id);
+      waiting = false;
+      onMatchEnter(matchId, id!);
+    }
   };
 </script>
 

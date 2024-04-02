@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { SendNoUpdates, SendUserMessage } from "$lib/api";
+  import { RecvResponse, SendNoUpdates, SendUserMessage } from "$lib/api";
 
   export let ws: WebSocket;
   export let matchId: string;
@@ -10,16 +10,17 @@
     const response = await SendUserMessage(ws, {
       joinLobbyRequest: { matchId },
     });
-    if (!response.joinLobbyResponse?.Ok.matchId) {
-      console.error(response);
+    if (response.serverPushUpdate?.matchStatusChange) {
+      console.log(response);
+      onMatchStart(response.serverPushUpdate?.matchStatusChange?.start);
+      return;
     }
-    while (true) {
-      let updates = await SendNoUpdates(ws);
-      if (updates.serverPushUpdate?.matchStatusChange) {
-        console.log(updates);
-        onMatchStart(updates.serverPushUpdate?.matchStatusChange?.start);
-        return;
-      }
+
+    let updates = await RecvResponse(ws);
+    if (updates.serverPushUpdate?.matchStatusChange) {
+      console.log(updates);
+      onMatchStart(updates.serverPushUpdate?.matchStatusChange?.start);
+      return;
     }
   }
 </script>
