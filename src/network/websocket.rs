@@ -71,16 +71,13 @@ fn handle_connection(
                 }
 
                 let user_message = get_user_message(&mut reader)?;
-                println!("user message, {:?}", user_message);
                 let mut session = shared_session.lock().map_err(|e| anyhow!(e.to_string()))?;
                 let response = session.process_message(user_message);
                 let json = serde_json::to_string(&response).unwrap();
                 rpc_tx.send(json)?;
-                println!("sent server response");
                 Ok(())
             }
 
-            println!("starting read loop");
             loop {
                 let read_process = read_process(
                     &mut reader,
@@ -96,7 +93,6 @@ fn handle_connection(
                     break;
                 }
             }
-            println!("exited read loop");
         });
 
         let writer_shared_session = shared_session.clone();
@@ -112,7 +108,6 @@ fn handle_connection(
                 }
 
                 if let Ok(json) = rpc_rx.try_recv() {
-                    println!("got server responsse to send, {}", json);
                     writer.send_message(&Message::text(json))?;
                 }
 
@@ -121,7 +116,6 @@ fn handle_connection(
                 let json = serde_json::to_string(&response)?;
                 if let ServerMessage::ServerPushUpdate(push) = response {
                     if let Some(_) = push {
-                        println!("got server push to send");
                         writer.send_message(&Message::text(json))?;
                     }
                 }
@@ -142,13 +136,10 @@ fn handle_connection(
                     break;
                 }
             }
-            println!("exited write loop");
         });
 
         _ = reader_thread.join();
-        println!("reader finished");
         _ = writer_thread.join();
-        println!("writer finished");
         shared_session.clone().lock().unwrap().kill_session();
         println!("killed client");
     });

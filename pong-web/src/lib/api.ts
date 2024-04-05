@@ -21,6 +21,11 @@ export const SendUserMessage = async (ws: WebSocket, message: UserMessage): Prom
     return resp;
 }
 
+export const SendUserMessageWithoutResponses = (ws: WebSocket, message: UserMessage): void => {
+    const asStr = JSON.stringify(message);
+    ws.send(asStr);
+}
+
 export const SendNoUpdates = async (ws: WebSocket) => {
     ws.send(JSON.stringify('noUpdates'));
     const resp = await RecvResponse(ws)

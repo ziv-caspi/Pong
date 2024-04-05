@@ -70,9 +70,15 @@ export type MovePlayerRequest = {
 
 export type Position = { x: number; y: number };
 export type  Dimensions = {0: number, 1: number};
+export type MovementVector = {
+    horizontalVector: number,
+    verticalVector: number,
+};
+
 export type BallInfo = {
     position: Position,
     radius: number,
+    movement: MovementVector
 }
 
 export type Movement = 'up' | 'down' | 'none'

@@ -5,7 +5,8 @@ use serde_derive::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
+
 pub struct Player {
     id: String,
     position: Position,
@@ -14,33 +15,44 @@ pub struct Player {
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
+
 pub struct Position {
-    x: u32,
-    y: u32,
+    pub x: u32,
+    pub y: u32,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct BallInfo {
-    position: Position,
-    radius: u8,
+    pub position: Position,
+    pub radius: u8,
+    pub movement: MovementVector,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
+pub struct MovementVector {
+    pub horizontal_vector: i32,
+    pub vertical_vector: i32,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[derive(Clone, PartialEq, Eq)]
+
 pub struct GameState {
-    player1_pos: Player,
-    player2_pos: Player,
-    ball_pos: BallInfo,
-    countdown: u8,
+    pub player1_pos: Player,
+    pub player2_pos: Player,
+    pub ball_pos: BallInfo,
+    pub countdown: u8,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct OnGameStateUpdate {
     pub id: String,
     pub state: GameState,
