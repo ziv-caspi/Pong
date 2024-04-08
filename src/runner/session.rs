@@ -2,7 +2,10 @@ use crossbeam::channel::{Receiver, RecvError};
 use uuid::Uuid;
 
 use crate::{
-    gameplay::{game::OnGameStateUpdate, GameDatalayer},
+    gameplay::{
+        game::{OnGameStateUpdate, Position},
+        GameDatalayer,
+    },
     new_matchmaking::{
         datalayer::{OnMatchStatusChange, OnNewMatch, User},
         rpc_datalayer::RpcMatchmakingDatalayer,
@@ -26,10 +29,14 @@ enum ClientState {
     InMatch,
 }
 
+const FRAMES_TO_UPDATE: u8 = 20;
+
 pub struct ClientSession<'a, TGameDatalayer> {
     id: Option<String>,
     current_match: Option<String>,
     state: ClientState,
+    last_game_state: Option<OnGameStateUpdate>,
+    skipped_frames: u8,
 
     matchmaking: &'a RpcMatchmakingDatalayer,
     on_new_match: Receiver<OnNewMatch>,
@@ -51,6 +58,8 @@ where
             id: None,
             current_match: None,
             state: ClientState::Unactive,
+            last_game_state: None,
+            skipped_frames: 0,
             matchmaking,
             on_new_match,
             on_match_change,
@@ -64,6 +73,7 @@ where
             _ = self.matchmaking.remove_from_queue(id.to_owned());
             if let Some(match_id) = &self.current_match {
                 _ = self.matchmaking.remove_from_match(match_id.to_owned(), id.to_owned());
+                _ = self.gameplay.remove_player(id, match_id);
             }
         }
     }
@@ -258,18 +268,47 @@ where
         }
     }
 
-    fn get_gameplay_state(&self) -> (ServerMessage, Option<ClientState>) {
+    fn get_gameplay_state(&mut self) -> (ServerMessage, Option<ClientState>) {
         let mut latest_state = Err(RecvError {});
         while !self.on_game_change.is_empty() {
             latest_state = self.on_game_change.recv();
         }
         match latest_state {
-            Ok(state) => (
-                ServerMessage::ServerPushUpdate(Some(ServerPushUpdate::GameStateChange(state))),
-                None,
-            ),
+            Ok(state) => {
+                if self.should_update_game_state(&state) {
+                    return (
+                        ServerMessage::ServerPushUpdate(Some(ServerPushUpdate::GameStateChange(
+                            state,
+                        ))),
+                        None,
+                    );
+                } else {
+                    return nothing();
+                }
+            }
             Err(_) => nothing(),
         }
+    }
+
+    fn should_update_game_state(&mut self, new_state: &OnGameStateUpdate) -> bool {
+        if let None = self.last_game_state {
+            return true;
+        }
+
+        // normalize values, we want to update on changes to anything except ball position
+        let mut last = self.last_game_state.clone().unwrap();
+        last.state.ball_pos.position = Position { x: 0, y: 0 };
+        let mut new = new_state.clone();
+        new.state.ball_pos.position = Position { x: 0, y: 0 };
+
+        if last == new && (self.skipped_frames as u32) < (FRAMES_TO_UPDATE as u32) * 10000 {
+            self.skipped_frames += 1;
+            return false;
+        }
+
+        self.last_game_state = Some(new_state.clone());
+        self.skipped_frames = 0;
+        true
     }
 }
 

@@ -5,9 +5,9 @@ const MAX__SPEED: u32 = 30;
 pub struct Ball {
     pub position: Position,
     pub radius: u32,
-    is_down: bool,
-    is_right: bool,
-    speed: u32,
+    pub is_down: bool,
+    pub is_right: bool,
+    pub speed: u32,
     screen_size: (u32, u32),
 }
 

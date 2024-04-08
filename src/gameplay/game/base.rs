@@ -11,7 +11,7 @@ const PLAYER_START_X: u32 = SCREEN_SIZE.0 / 8;
 const PLAYER1_START_X: u32 = PLAYER_START_X;
 const PLAYER2_START_X: u32 = SCREEN_SIZE.0 - PLAYER_START_X;
 
-const SERVER_FPS: u128 = 200;
+const SERVER_FPS: u128 = 60;
 const MILLIS_BETWEEN_FRAMES: u128 = 1000 / SERVER_FPS;
 
 pub struct Game {
@@ -44,12 +44,22 @@ impl Game {
     }
 
     pub fn get_state(&self) -> GameState {
+        let mut horizontal_vector = self.ball.speed as i32;
+        let mut vertical_vector = self.ball.speed as i32;
+        if !self.ball.is_right {
+            horizontal_vector *= -1;
+        }
+        if !self.ball.is_down {
+            vertical_vector *= -1;
+        }
+
         GameState {
             player1_pos: self.player1.clone(),
             player2_pos: self.player2.clone(),
             ball_pos: super::BallInfo {
                 position: self.ball.position.clone(),
                 radius: self.ball.radius as u8,
+                movement: super::MovementVector { horizontal_vector, vertical_vector },
             },
             countdown: self.countdown.current,
         }

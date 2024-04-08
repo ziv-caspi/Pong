@@ -1,10 +1,16 @@
 <script lang="ts">
-  import { SendNoUpdates, SendUserMessage } from "$lib/api";
+  import {
+    SendNoUpdates,
+    SendUserMessage,
+    SendUserMessageWithoutResponses,
+    SubscribeToServerMessages,
+  } from "$lib/api";
   import type {
     Dimensions,
     GameState,
     GameStateChange,
     Movement,
+    MovementVector,
     Position,
   } from "$lib/messages";
   import { onMount } from "svelte";
@@ -17,13 +23,23 @@
   let playerPosition: Position = { x: -100, y: -100 };
   let oponentPosition: Position = { x: -100, y: -100 };
   let ballPosition: Position = { x: -100, y: -100 };
+  let ballMovement: MovementVector = {
+    horizontalVector: 0,
+    verticalVector: 0,
+  };
   let ballRadius = 0;
   let countdown = -1;
   let playerDimensions: Dimensions = { "0": 1, "1": 1 };
   let movement: Movement = "none";
 
+  let frames = 0;
+  let time = Date.now();
+
   onMount(async () => {
-    callbackGameLoop((state) => {
+    SubscribeToServerMessages(ws, (message) => {
+      const state = message.serverPushUpdate?.gameStateChange;
+      if (!state) return;
+
       const positions = getPositions(state.state);
       playerPosition = positions.player;
       oponentPosition = positions.oponent;
@@ -31,31 +47,35 @@
       ballRadius = state.state.ballPos.radius;
       countdown = state.state.countdown;
       playerDimensions = state.state.player1Pos.dimensions;
+      ballMovement = state.state.ballPos.movement;
+    });
+
+    callbackGameLoop((state) => {
+      // not needed anymore
     });
   });
 
   function callbackGameLoop(onStateChange: (state: GameStateChange) => void) {
     new Promise(async (resolve, reject) => {
-      await handleFrame(onStateChange);
+      handleFrame();
     });
   }
 
-  async function handleFrame(onStateChange: (state: GameStateChange) => void) {
+  function handleFrame() {
     // const msPerFrame = 1000 / 60;
     // let totalStart = Date.now();
     // let frames = 0;
     // let start = Date.now();
-    const message = await SendNoUpdates(ws);
-    const state = message.serverPushUpdate?.gameStateChange;
-    if (state) {
-      onStateChange(state);
-    }
+
+    ballPosition.x += ballMovement.horizontalVector;
+    ballPosition.y += ballMovement.verticalVector;
+
     if (movement != "none") {
       let yDelta = 10;
       if (movement == "up") {
         yDelta *= -1;
       }
-      await SendUserMessage(ws, {
+      SendUserMessageWithoutResponses(ws, {
         movePlayerRequest: { matchId, yDelta },
       });
     }
@@ -69,12 +89,12 @@
     //   console.log("no spare time for frame. diff", spareFrameTime);
     // }
     // frames += 1;
-    // if (Date.now() - totalStart >= 1000) {
+    // if (Date.now() - time >= 1000) {
     //   console.log("fps:", frames);
     //   frames = 0;
-    //   totalStart = Date.now();
+    //   time = Date.now();
     // }
-    requestAnimationFrame(async () => await handleFrame(onStateChange));
+    requestAnimationFrame(handleFrame);
   }
 
   function getPositions(state: GameState): {
