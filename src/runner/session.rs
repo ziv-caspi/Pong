@@ -29,6 +29,8 @@ enum ClientState {
     InMatch,
 }
 
+const FRAMES_TO_UPDATE: u8 = 100000;
+
 pub struct ClientSession<'a, TGameDatalayer> {
     id: Option<String>,
     current_match: Option<String>,
@@ -298,7 +300,7 @@ where
         let mut new = new_state.clone();
         new.state.ball_pos.position = Position { x: 0, y: 0 };
 
-        if last == new && self.skipped_frames < 10 {
+        if last == new && self.skipped_frames < FRAMES_TO_UPDATE {
             self.skipped_frames += 1;
             return false;
         }
