@@ -1,6 +1,6 @@
 use super::{game::base::Game, GameDatalayer, GameState, OnGameStateUpdate};
 use crate::utils::events::EventTopic;
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 
 pub struct MemoryGameDatalayer {
     games: Vec<Game>,
@@ -61,5 +61,14 @@ impl GameDatalayer for MemoryGameDatalayer {
                     .invoke(OnGameStateUpdate { id: game.match_id.clone(), state: state })
             }
         }
+    }
+
+    fn remove_player(&mut self, player: &str, game: &str) -> Result<()> {
+        let position = match self.games.iter().position(|g| g.match_id == game) {
+            Some(pos) => Ok(pos),
+            None => Err(anyhow!("could not find player with this id")),
+        }?;
+        self.games.remove(position);
+        Ok(())
     }
 }

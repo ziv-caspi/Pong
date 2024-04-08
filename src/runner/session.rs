@@ -73,6 +73,7 @@ where
             _ = self.matchmaking.remove_from_queue(id.to_owned());
             if let Some(match_id) = &self.current_match {
                 _ = self.matchmaking.remove_from_match(match_id.to_owned(), id.to_owned());
+                _ = self.gameplay.remove_player(id, match_id);
             }
         }
     }
@@ -300,7 +301,7 @@ where
         let mut new = new_state.clone();
         new.state.ball_pos.position = Position { x: 0, y: 0 };
 
-        if last == new && self.skipped_frames < FRAMES_TO_UPDATE {
+        if last == new && (self.skipped_frames as u32) < (FRAMES_TO_UPDATE as u32) * 10000 {
             self.skipped_frames += 1;
             return false;
         }
