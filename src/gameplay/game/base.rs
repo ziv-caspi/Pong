@@ -1,7 +1,11 @@
 use anyhow::{bail, Result};
 use std::time::Instant;
 
-use super::{ball::Ball, countdown::Countdown, GameState, Player, Position};
+use super::{
+    ball::{Ball, BallMovementResult, Collision},
+    countdown::Countdown,
+    GameState, Player, Position, Score,
+};
 
 const SCREEN_SIZE: (u32, u32) = (667, 300);
 const PLAYER_SIZE: (u32, u32) = (5, 75);
@@ -20,23 +24,27 @@ pub struct Game {
     player2: Player,
     ball: Ball,
     countdown: Countdown,
+    score: Score,
     last_frame: Instant,
 }
 
 impl Game {
     pub fn new(match_id: String, player1: String, player2: String) -> Self {
+        let player1 = Player {
+            id: player1,
+            position: Position { x: PLAYER1_START_X, y: PLAYER_START_Y },
+            dimensions: PLAYER_SIZE,
+        };
+        let player2 = Player {
+            id: player2,
+            position: Position { x: PLAYER2_START_X, y: PLAYER_START_Y },
+            dimensions: PLAYER_SIZE,
+        };
         Self {
+            score: Score::new(player1.clone(), player2.clone()),
             match_id,
-            player1: Player {
-                id: player1,
-                position: Position { x: PLAYER1_START_X, y: PLAYER_START_Y },
-                dimensions: PLAYER_SIZE,
-            },
-            player2: Player {
-                id: player2,
-                position: Position { x: PLAYER2_START_X, y: PLAYER_START_Y },
-                dimensions: PLAYER_SIZE,
-            },
+            player1,
+            player2,
             ball: Ball::new(SCREEN_SIZE),
             countdown: Countdown::new(),
             last_frame: Instant::now(),
@@ -102,8 +110,20 @@ impl Game {
         }
 
         let ball_change = self.ball.do_move(&self.player1, &self.player2);
+        if let BallMovementResult::MoveCollide(Collision::BorderCollision(border)) = &ball_change {
+            if self.score.update(border) {
+                if let Some(winner) = &self.score.winner {
+                    self.ball.respawn();
+                    self.ball.speed = 0;
+                    println!("winner: {}", winner);
+                } else {
+                    println!("updated score:  {:#?}", self.score);
+                    self.ball.respawn();
+                }
+            }
+        }
 
-        if ball_change {
+        if let BallMovementResult::Move = ball_change {
             return Some(self.get_state());
         } else {
             return None;

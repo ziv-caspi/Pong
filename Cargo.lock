@@ -623,6 +623,7 @@ dependencies = [
  "anyhow",
  "crossbeam",
  "queues",
+ "rand 0.6.5",
  "serde",
  "serde_derive",
  "serde_json",
