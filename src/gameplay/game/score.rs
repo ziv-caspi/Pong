@@ -6,8 +6,8 @@ use super::{
 impl Score {
     pub fn new(left: Player, right: Player) -> Self {
         Score {
-            left_player: PlayerWithScore { player: left, score: 0 },
-            right_player: PlayerWithScore { player: right, score: 0 },
+            left_player: PlayerWithScore { player: left.id, score: 0 },
+            right_player: PlayerWithScore { player: right.id, score: 0 },
             winner: None,
         }
     }
@@ -23,10 +23,10 @@ impl Score {
         }
 
         if self.left_player.score >= 3 {
-            self.winner = Some(self.left_player.player.id.to_owned());
+            self.winner = Some(self.left_player.player.clone());
             return true;
         } else if self.right_player.score >= 3 {
-            self.winner = Some(self.right_player.player.id.to_owned());
+            self.winner = Some(self.right_player.player.clone());
             return true;
         }
 

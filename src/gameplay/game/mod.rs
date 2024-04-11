@@ -73,6 +73,6 @@ pub struct Score {
 #[serde(rename_all = "camelCase")]
 #[derive(Clone, PartialEq, Eq)]
 pub struct PlayerWithScore {
-    player: Player,
+    player: String,
     score: u8,
 }

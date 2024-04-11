@@ -39,7 +39,7 @@
   //   : undefined;
   $: scoreView = () => {
     if (!score) return undefined;
-    if (score.leftPlayer.player.id == playerId) {
+    if (score.leftPlayer.player == playerId) {
       return {
         player: score.leftPlayer.score,
         oponent: score.rightPlayer.score,

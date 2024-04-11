@@ -92,6 +92,6 @@ export type Score = {
 
 
 export type PlayerWithScore = {
-    player: Player,
+    player: string,
     score: number,
 }
