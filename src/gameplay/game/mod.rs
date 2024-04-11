@@ -2,6 +2,8 @@ mod ball;
 pub mod base;
 mod countdown;
 mod score;
+use std::time::Instant;
+
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -58,6 +60,7 @@ pub struct GameState {
 pub struct OnGameStateUpdate {
     pub id: String,
     pub state: GameState,
+    pub timestamp_ms: u128,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

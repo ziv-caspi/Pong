@@ -1,3 +1,5 @@
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
+
 use super::{game::base::Game, GameDatalayer, GameState, OnGameStateUpdate};
 use crate::utils::events::EventTopic;
 use anyhow::{anyhow, bail, Result};
@@ -28,7 +30,11 @@ impl GameDatalayer for MemoryGameDatalayer {
         let game = Game::new(match_id.clone(), player1_id, player2_id);
         let state = game.get_state();
         self.games.push(game);
-        self.on_game_update.invoke(OnGameStateUpdate { id: match_id, state: state.clone() });
+        self.on_game_update.invoke(OnGameStateUpdate {
+            id: match_id,
+            state: state.clone(),
+            timestamp_ms: get_time(),
+        });
         state
     }
 
@@ -46,7 +52,11 @@ impl GameDatalayer for MemoryGameDatalayer {
         }
 
         let state = game.move_player(player_id, normalized, up)?;
-        self.on_game_update.invoke(OnGameStateUpdate { id: match_id.to_owned(), state: state });
+        self.on_game_update.invoke(OnGameStateUpdate {
+            id: match_id.to_owned(),
+            state: state,
+            timestamp_ms: get_time(),
+        });
         Ok(())
     }
 
@@ -57,8 +67,11 @@ impl GameDatalayer for MemoryGameDatalayer {
     fn tick(&mut self) {
         for game in &mut self.games {
             if let Some(state) = game.tick() {
-                self.on_game_update
-                    .invoke(OnGameStateUpdate { id: game.match_id.clone(), state: state })
+                self.on_game_update.invoke(OnGameStateUpdate {
+                    id: game.match_id.clone(),
+                    state: state,
+                    timestamp_ms: get_time(),
+                })
             }
         }
     }
@@ -71,4 +84,8 @@ impl GameDatalayer for MemoryGameDatalayer {
         self.games.remove(position);
         Ok(())
     }
+}
+
+fn get_time() -> u128 {
+    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis()
 }

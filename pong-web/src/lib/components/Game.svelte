@@ -62,7 +62,7 @@
     SubscribeToServerMessages(ws, (message) => {
       const state = message.serverPushUpdate?.gameStateChange;
       if (!state) return;
-
+      console.log("lag:", Date.now() - state.timestampMs);
       const positions = getPositions(state.state);
       playerPosition = positions.player;
       oponentPosition = positions.oponent;
