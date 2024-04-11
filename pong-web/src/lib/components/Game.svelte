@@ -12,6 +12,7 @@
     Movement,
     MovementVector,
     Position,
+    Score,
   } from "$lib/messages";
   import { onMount } from "svelte";
   import GameCanvas from "./GameCanvas.svelte";
@@ -31,6 +32,27 @@
   let countdown = -1;
   let playerDimensions: Dimensions = { "0": 1, "1": 1 };
   let movement: Movement = "none";
+  let score: Score | undefined = undefined;
+
+  // $: scoreView = score
+  //   ? { player: score.leftPlayer.score, oponent: score.rightPlayer.score }
+  //   : undefined;
+  $: scoreView = () => {
+    if (!score) return undefined;
+    if (score.leftPlayer.player == playerId) {
+      return {
+        player: score.leftPlayer.score,
+        oponent: score.rightPlayer.score,
+        playerIsRight: false,
+      };
+    }
+
+    return {
+      player: score.rightPlayer.score,
+      oponent: score.leftPlayer.score,
+      playerIsRight: true,
+    };
+  };
 
   let frames = 0;
   let time = Date.now();
@@ -48,6 +70,7 @@
       countdown = state.state.countdown;
       playerDimensions = state.state.player1Pos.dimensions;
       ballMovement = state.state.ballPos.movement;
+      score = state.state.score;
     });
 
     callbackGameLoop((state) => {
@@ -130,6 +153,7 @@
   {ballPosition}
   {ballRadius}
   {countdown}
+  score={scoreView()}
   onPlayerMovementChange={(pmovement) => {
     if (movement != pmovement) {
       console.log(pmovement);

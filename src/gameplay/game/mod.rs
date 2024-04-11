@@ -1,6 +1,7 @@
 mod ball;
 pub mod base;
 mod countdown;
+mod score;
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -48,6 +49,7 @@ pub struct GameState {
     pub player2_pos: Player,
     pub ball_pos: BallInfo,
     pub countdown: u8,
+    pub score: Score,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -56,4 +58,21 @@ pub struct GameState {
 pub struct OnGameStateUpdate {
     pub id: String,
     pub state: GameState,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[derive(Clone, PartialEq, Eq)]
+pub struct Score {
+    left_player: PlayerWithScore,
+    right_player: PlayerWithScore,
+    winner: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[derive(Clone, PartialEq, Eq)]
+pub struct PlayerWithScore {
+    player: String,
+    score: u8,
 }

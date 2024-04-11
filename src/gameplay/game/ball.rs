@@ -1,6 +1,31 @@
+use std::cmp::{max, Ordering};
+
+use rand::{rngs::ThreadRng, Rng};
+
 use super::{Player, Position};
 const INITIAL_SPEED: u32 = 4;
-const MAX__SPEED: u32 = 30;
+const MAX_SPEED: u32 = 30;
+
+#[derive(Eq, PartialEq, PartialOrd, Ord)]
+pub enum BallMovementResult {
+    NoMove,
+    Move,
+    MoveCollide(Collision),
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub enum Collision {
+    PlayerCollision(String),
+    BorderCollision(Border),
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub enum Border {
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
 
 pub struct Ball {
     pub position: Position,
@@ -18,25 +43,41 @@ impl Ball {
             is_down: true,
             is_right: true,
             radius: 8,
-            speed: INITIAL_SPEED,
+            speed: 0,
             screen_size,
         }
     }
 
-    pub fn do_move(&mut self, player1: &Player, player2: &Player) -> bool {
+    pub fn do_move(&mut self, player1: &Player, player2: &Player) -> BallMovementResult {
+        // handle start after countdown
+        if self.speed == 0 {
+            self.speed = INITIAL_SPEED;
+        }
+
         let (right_player, left_player) = get_right_and_left_players(player1, player2);
 
-        let v_moved = self.vertical_move();
-        let h_moved = self.horizontal_move(left_player, right_player);
-
-        h_moved || v_moved
+        let v_res = self.vertical_move();
+        let h_res = self.horizontal_move(left_player, right_player);
+        max(v_res, h_res) // returns dominant event
     }
 
-    fn vertical_move(&mut self) -> bool {
+    pub fn respawn(&mut self) {
+        let mut rand = rand::thread_rng();
+        self.position.x = self.screen_size.0 / 2;
+        let y = rand.gen_range(100, self.screen_size.1 - 100);
+        self.position.y = y;
+        let right = rand.gen_bool(0.5);
+        self.is_right = right;
+    }
+
+    fn vertical_move(&mut self) -> BallMovementResult {
+        let mut border_col: Option<Collision> = None;
         if self.position.y <= 0 + self.radius as u32 {
-            self.is_down = true
+            self.is_down = true;
+            border_col = Some(Collision::BorderCollision(Border::Top));
         } else if self.position.y >= self.screen_size.1 - self.radius as u32 {
             self.is_down = false;
+            border_col = Some(Collision::BorderCollision(Border::Bottom));
         }
 
         if self.is_down {
@@ -45,23 +86,40 @@ impl Ball {
             self.position.y = self.position.y.checked_sub(self.speed).unwrap_or(0);
         }
 
-        true
+        match border_col {
+            Some(col) => BallMovementResult::MoveCollide(col),
+            None => BallMovementResult::Move,
+        }
     }
 
-    fn horizontal_move(&mut self, left_player: &Player, right_player: &Player) -> bool {
+    fn horizontal_move(
+        &mut self,
+        left_player: &Player,
+        right_player: &Player,
+    ) -> BallMovementResult {
+        let mut border_col: Option<Collision> = None;
         if self.position.x >= self.screen_size.0 - self.radius as u32 {
             self.is_right = false;
+            border_col = Some(Collision::BorderCollision(Border::Right));
         } else if self.position.x <= 0 + self.radius as u32 {
             self.is_right = true;
+            border_col = Some(Collision::BorderCollision(Border::Left));
         }
 
-        if self.collides_with_player(right_player, true)
-            || self.collides_with_player(left_player, false)
-        {
+        let right_player_col = self.collides_with_player(right_player, true);
+        let left_player_col = self.collides_with_player(left_player, false);
+        if right_player_col || left_player_col {
             self.is_right = !self.is_right;
             // if self.speed <= MAX__SPEED {
             //     self.speed += 2;
             // }
+            let player: &str;
+            if right_player_col {
+                player = &right_player.id;
+            } else {
+                player = &left_player.id;
+            }
+            return BallMovementResult::MoveCollide(Collision::PlayerCollision(player.to_owned()));
         }
 
         if self.is_right {
@@ -70,7 +128,10 @@ impl Ball {
             self.position.x = self.position.x.checked_sub(self.speed).unwrap_or(0);
         }
 
-        true
+        match border_col {
+            Some(col) => BallMovementResult::MoveCollide(col),
+            None => BallMovementResult::Move,
+        }
     }
 
     fn collides_with_player(&self, player: &Player, is_right: bool) -> bool {
@@ -87,11 +148,9 @@ impl Ball {
         let bottom = self.position.y + self.radius;
 
         let horizontal_collision: bool;
-        if is_right {
-            horizontal_collision = right >= (player.position.x - player.dimensions.0);
-        } else {
-            horizontal_collision = left <= (player.position.x + player.dimensions.0);
-        }
+        let player_horizontal = player.position.x..player.position.x + player.dimensions.0;
+        horizontal_collision =
+            player_horizontal.contains(&right) || player_horizontal.contains(&left);
 
         horizontal_collision
             && bottom >= player.position.y

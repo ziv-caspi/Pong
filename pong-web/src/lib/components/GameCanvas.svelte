@@ -12,6 +12,13 @@
   export let ballPosition: Position;
   export let ballRadius: number;
   export let countdown: number;
+  export let score:
+    | undefined
+    | {
+        player: number;
+        oponent: number;
+        playerIsRight: boolean;
+      };
   export let onPlayerMovementChange: (movement: Movement) => void;
 
   let movement: Movement = "none";
@@ -21,6 +28,7 @@
 
   let count: Render;
   $: count = ({ context, width, height }) => {
+    if (countdown <= 0) return;
     context.font = `${width / 20}px sans-serif`;
     context.textAlign = "center";
     context.textBaseline = "middle";
@@ -56,6 +64,26 @@
     context.beginPath();
     context.arc(ballPosition.x, ballPosition.y, ballRadius, 0, 2 * Math.PI);
     context.fill();
+  };
+
+  let scoreView: Render;
+  $: scoreView = ({ context, width, height }) => {
+    if (!score || countdown > 0) return;
+
+    context.font = `${width / 15}px sans-serif`;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    if (score.playerIsRight) {
+      context.fillStyle = "black";
+      context.fillText(`${score.oponent} :`, width / 2, height / 2);
+      context.fillStyle = "green";
+      context.fillText(`${score.player}`, width / 2 + 50, height / 2);
+    } else {
+      context.fillStyle = "green";
+      context.fillText(`${score.player} :`, width / 2, height / 2);
+      context.fillStyle = "black";
+      context.fillText(`${score.oponent}`, width / 2 + 50, height / 2);
+    }
   };
 
   function getTouchRelativePosition(event: TouchEvent): Position {
@@ -98,6 +126,7 @@
   on:touchmove={onTouch}
 >
   <Layer render={count} />
+  <Layer render={scoreView} />
   <Layer render={player} />
   <Layer render={oponent} />
   <Layer render={ball} />
