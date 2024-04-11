@@ -15,10 +15,10 @@ impl Score {
     pub fn update(&mut self, border: &Border) -> bool {
         let mut updated = false;
         if let Border::Left = border {
-            self.left_player.score += 1;
+            self.right_player.score += 1;
             updated = true;
         } else if let Border::Right = border {
-            self.right_player.score += 1;
+            self.left_player.score += 1;
             updated = true;
         }
 

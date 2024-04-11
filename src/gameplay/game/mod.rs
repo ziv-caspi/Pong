@@ -49,6 +49,7 @@ pub struct GameState {
     pub player2_pos: Player,
     pub ball_pos: BallInfo,
     pub countdown: u8,
+    pub score: Score,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

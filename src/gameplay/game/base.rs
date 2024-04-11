@@ -70,6 +70,7 @@ impl Game {
                 movement: super::MovementVector { horizontal_vector, vertical_vector },
             },
             countdown: self.countdown.current,
+            score: self.score.clone(),
         }
     }
 

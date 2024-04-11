@@ -55,6 +55,7 @@ export type GameState = {
     player2Pos: Player,
     ballPos: BallInfo,
     countdown: number,
+    score: Score,
 }
 
 export type Player = {
@@ -82,3 +83,15 @@ export type BallInfo = {
 }
 
 export type Movement = 'up' | 'down' | 'none'
+
+export type Score = {
+    leftPlayer: PlayerWithScore,
+    rightPlayer: PlayerWithScore,
+    winner: {some?: string},
+}
+
+
+export type PlayerWithScore = {
+    player: Player,
+    score: number,
+}
