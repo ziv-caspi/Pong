@@ -33,6 +33,7 @@
   let playerDimensions: Dimensions = { "0": 1, "1": 1 };
   let movement: Movement = "none";
   let score: Score | undefined = undefined;
+  let canvasDimension = { "0": 667, "1": 300 };
 
   // $: scoreView = score
   //   ? { player: score.leftPlayer.score, oponent: score.rightPlayer.score }
@@ -92,6 +93,13 @@
 
     ballPosition.x += ballMovement.horizontalVector;
     ballPosition.y += ballMovement.verticalVector;
+
+    if (ballPosition.y >= canvasDimension[1] || ballPosition.y <= 0) {
+      ballMovement.verticalVector *= -1;
+    }
+    if (ballPosition.x >= canvasDimension[0] || ballPosition.x <= 0) {
+      ballMovement.horizontalVector *= -1;
+    }
 
     if (movement != "none") {
       let yDelta = 10;
@@ -160,6 +168,6 @@
       movement = pmovement;
     }
   }}
-  canvasDimennsion={{ "0": 667, "1": 300 }}
+  canvasDimennsion={canvasDimension}
   {playerDimensions}
 />

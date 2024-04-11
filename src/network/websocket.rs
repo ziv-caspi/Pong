@@ -13,6 +13,7 @@ use std::{
     net::TcpStream,
     sync::{Arc, Mutex},
     thread,
+    time::Duration,
 };
 use websocket::{
     sync::{server::Server, Client, Reader, Writer},
@@ -113,6 +114,7 @@ fn handle_connection(
 
                 let mut session = shared_session.lock().map_err(|e| anyhow!(e.to_string()))?;
                 let response = session.process_message(UserMessage::NoUpdates);
+                thread::sleep(Duration::from_secs(1)); // TODO:  remove, just for visualizng lag
                 let json = serde_json::to_string(&response)?;
                 if let ServerMessage::ServerPushUpdate(push) = response {
                     if let Some(_) = push {
