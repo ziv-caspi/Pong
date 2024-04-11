@@ -152,20 +152,6 @@ impl Ball {
         horizontal_collision =
             player_horizontal.contains(&right) || player_horizontal.contains(&left);
 
-        //debug
-
-        if is_right {
-            if right >= (player.position.x - player.dimensions.0) {
-                let x = 5;
-            }
-        } else {
-            if left <= (player.position.x + player.dimensions.0) {
-                let x = 5;
-            }
-        }
-
-        //return false;
-        // BUG: when going past player but entering its height, the collision happens before border
         horizontal_collision
             && bottom >= player.position.y
             && top <= player.position.y + player.dimensions.1
