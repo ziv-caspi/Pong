@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::cmp::{max, Ordering};
 
 use rand::{rngs::ThreadRng, Rng};
 
@@ -58,12 +58,7 @@ impl Ball {
 
         let v_res = self.vertical_move();
         let h_res = self.horizontal_move(left_player, right_player);
-
-        if v_res > h_res {
-            return v_res;
-        } else {
-            return h_res;
-        }
+        max(v_res, h_res) // returns dominant event
     }
 
     pub fn respawn(&mut self) {
