@@ -50,7 +50,7 @@
     canvasDimension: { "0": 667, "1": 300 },
   };
 
-  let lastFrames: InnerState[] = [];
+  let lastFrames: { state: InnerState; timestamp: number }[] = [];
 
   // $: scoreView = score
   //   ? { player: score.leftPlayer.score, oponent: score.rightPlayer.score }
@@ -123,6 +123,8 @@
     ) {
       innerState.ballMovement.horizontalVector *= -1;
     }
+
+    lastFrames.push({ state: { ...innerState }, timestamp: Date.now() });
 
     if (innerState.movement != "none") {
       let yDelta = 10;
