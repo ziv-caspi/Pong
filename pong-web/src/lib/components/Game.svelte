@@ -17,40 +17,57 @@
   import { onMount } from "svelte";
   import GameCanvas from "./GameCanvas.svelte";
 
+  type InnerState = {
+    playerPosition: Position;
+    oponentPosition: Position;
+    ballPosition: Position;
+    ballMovement: MovementVector;
+    ballRadius: number;
+    countdown: number;
+    playerDimensions: Dimensions;
+    movement: Movement;
+    score: Score | undefined;
+    canvasDimension: Dimensions;
+  };
+
   export let matchId: string;
   export let playerId: string;
   export let ws: WebSocket;
 
-  let playerPosition: Position = { x: -100, y: -100 };
-  let oponentPosition: Position = { x: -100, y: -100 };
-  let ballPosition: Position = { x: -100, y: -100 };
-  let ballMovement: MovementVector = {
-    horizontalVector: 0,
-    verticalVector: 0,
+  let innerState: InnerState = {
+    playerPosition: { x: -100, y: -100 },
+    oponentPosition: { x: -100, y: -100 },
+    ballPosition: { x: -100, y: -100 },
+    ballMovement: {
+      horizontalVector: 0,
+      verticalVector: 0,
+    },
+    ballRadius: 0,
+    countdown: -1,
+    playerDimensions: { "0": 1, "1": 1 },
+    movement: "none",
+    score: undefined,
+    canvasDimension: { "0": 667, "1": 300 },
   };
-  let ballRadius = 0;
-  let countdown = -1;
-  let playerDimensions: Dimensions = { "0": 1, "1": 1 };
-  let movement: Movement = "none";
-  let score: Score | undefined = undefined;
-  let canvasDimension = { "0": 667, "1": 300 };
+
+  let lastFrames: InnerState[] = [];
 
   // $: scoreView = score
   //   ? { player: score.leftPlayer.score, oponent: score.rightPlayer.score }
   //   : undefined;
   $: scoreView = () => {
-    if (!score) return undefined;
-    if (score.leftPlayer.player == playerId) {
+    if (!innerState.score) return undefined;
+    if (innerState.score.leftPlayer.player == playerId) {
       return {
-        player: score.leftPlayer.score,
-        oponent: score.rightPlayer.score,
+        player: innerState.score.leftPlayer.score,
+        oponent: innerState.score.rightPlayer.score,
         playerIsRight: false,
       };
     }
 
     return {
-      player: score.rightPlayer.score,
-      oponent: score.leftPlayer.score,
+      player: innerState.score.rightPlayer.score,
+      oponent: innerState.score.leftPlayer.score,
       playerIsRight: true,
     };
   };
@@ -64,14 +81,14 @@
       if (!state) return;
       console.log("lag:", Date.now() - state.timestampMs);
       const positions = getPositions(state.state);
-      playerPosition = positions.player;
-      oponentPosition = positions.oponent;
-      ballPosition = state.state.ballPos.position;
-      ballRadius = state.state.ballPos.radius;
-      countdown = state.state.countdown;
-      playerDimensions = state.state.player1Pos.dimensions;
-      ballMovement = state.state.ballPos.movement;
-      score = state.state.score;
+      innerState.playerPosition = positions.player;
+      innerState.oponentPosition = positions.oponent;
+      innerState.ballPosition = state.state.ballPos.position;
+      innerState.ballRadius = state.state.ballPos.radius;
+      innerState.countdown = state.state.countdown;
+      innerState.playerDimensions = state.state.player1Pos.dimensions;
+      innerState.ballMovement = state.state.ballPos.movement;
+      innerState.score = state.state.score;
     });
 
     callbackGameLoop((state) => {
@@ -91,19 +108,25 @@
     // let frames = 0;
     // let start = Date.now();
 
-    ballPosition.x += ballMovement.horizontalVector;
-    ballPosition.y += ballMovement.verticalVector;
+    innerState.ballPosition.x += innerState.ballMovement.horizontalVector;
+    innerState.ballPosition.y += innerState.ballMovement.verticalVector;
 
-    if (ballPosition.y >= canvasDimension[1] || ballPosition.y <= 0) {
-      ballMovement.verticalVector *= -1;
+    if (
+      innerState.ballPosition.y >= innerState.canvasDimension[1] ||
+      innerState.ballPosition.y <= 0
+    ) {
+      innerState.ballMovement.verticalVector *= -1;
     }
-    if (ballPosition.x >= canvasDimension[0] || ballPosition.x <= 0) {
-      ballMovement.horizontalVector *= -1;
+    if (
+      innerState.ballPosition.x >= innerState.canvasDimension[0] ||
+      innerState.ballPosition.x <= 0
+    ) {
+      innerState.ballMovement.horizontalVector *= -1;
     }
 
-    if (movement != "none") {
+    if (innerState.movement != "none") {
       let yDelta = 10;
-      if (movement == "up") {
+      if (innerState.movement == "up") {
         yDelta *= -1;
       }
       SendUserMessageWithoutResponses(ws, {
@@ -156,18 +179,18 @@
 {/if} -->
 
 <GameCanvas
-  {playerPosition}
-  {oponentPosition}
-  {ballPosition}
-  {ballRadius}
-  {countdown}
+  playerPosition={innerState.playerPosition}
+  oponentPosition={innerState.oponentPosition}
+  ballPosition={innerState.ballPosition}
+  ballRadius={innerState.ballRadius}
+  countdown={innerState.countdown}
   score={scoreView()}
   onPlayerMovementChange={(pmovement) => {
-    if (movement != pmovement) {
+    if (innerState.movement != pmovement) {
       console.log(pmovement);
-      movement = pmovement;
+      innerState.movement = pmovement;
     }
   }}
-  canvasDimennsion={canvasDimension}
-  {playerDimensions}
+  canvasDimennsion={innerState.canvasDimension}
+  playerDimensions={innerState.playerDimensions}
 />
