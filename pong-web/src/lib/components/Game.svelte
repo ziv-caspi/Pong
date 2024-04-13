@@ -49,8 +49,13 @@
     score: undefined,
     canvasDimension: { "0": 667, "1": 300 },
   };
+  let lastServerTimestamp = -1;
 
-  let lastFrames: { state: InnerState; timestamp: number }[] = [];
+  let lastFrames: {
+    state: InnerState;
+    serverTimestamp: number;
+    offsetFrames: number;
+  }[] = [];
 
   // $: scoreView = score
   //   ? { player: score.leftPlayer.score, oponent: score.rightPlayer.score }
@@ -80,6 +85,7 @@
       const state = message.serverPushUpdate?.gameStateChange;
       if (!state) return;
       console.log("lag:", Date.now() - state.timestampMs);
+      const oldTs = lastServerTimestamp;
       const positions = getPositions(state.state);
       innerState.playerPosition = positions.player;
       innerState.oponentPosition = positions.oponent;
@@ -89,6 +95,8 @@
       innerState.playerDimensions = state.state.player1Pos.dimensions;
       innerState.ballMovement = state.state.ballPos.movement;
       innerState.score = state.state.score;
+      lastServerTimestamp = state.timestampMs;
+      reCalculateStateOnServerUpdate(oldTs, lastServerTimestamp, innerState);
     });
 
     callbackGameLoop((state) => {
@@ -108,23 +116,24 @@
     // let frames = 0;
     // let start = Date.now();
 
-    innerState.ballPosition.x += innerState.ballMovement.horizontalVector;
-    innerState.ballPosition.y += innerState.ballMovement.verticalVector;
+    const newState = clientStateCalculation(
+      innerState.ballPosition,
+      innerState.ballMovement,
+    );
+    innerState.ballPosition = newState.ballPosititon;
+    innerState.ballMovement = newState.ballMovement;
 
-    if (
-      innerState.ballPosition.y >= innerState.canvasDimension[1] ||
-      innerState.ballPosition.y <= 0
-    ) {
-      innerState.ballMovement.verticalVector *= -1;
-    }
-    if (
-      innerState.ballPosition.x >= innerState.canvasDimension[0] ||
-      innerState.ballPosition.x <= 0
-    ) {
-      innerState.ballMovement.horizontalVector *= -1;
-    }
-
-    lastFrames.push({ state: { ...innerState }, timestamp: Date.now() });
+    const last = lastFrames.findLast(() => true);
+    const offset =
+      last && last.serverTimestamp == lastServerTimestamp
+        ? last.offsetFrames + 1
+        : 0;
+    const frame = {
+      state: { ...innerState },
+      serverTimestamp: lastServerTimestamp,
+      offsetFrames: offset,
+    };
+    lastFrames.push(frame);
 
     if (innerState.movement != "none") {
       let yDelta = 10;
@@ -151,6 +160,87 @@
     //   time = Date.now();
     // }
     requestAnimationFrame(handleFrame);
+  }
+
+  function clientStateCalculation(
+    ballPosition: Position,
+    ballMovement: MovementVector,
+  ): { ballPosititon: Position; ballMovement: MovementVector } {
+    const newBallPosition: Position = {
+      x: ballPosition.x + ballMovement.horizontalVector,
+      y: ballPosition.y + ballMovement.verticalVector,
+    };
+
+    let newBallMovement = { ...ballMovement };
+    if (
+      newBallPosition.y >= innerState.canvasDimension[1] ||
+      newBallPosition.y <= 0
+    ) {
+      newBallMovement.verticalVector *= -1;
+    }
+
+    // if (
+    //   newBallPosition.x >= innerState.canvasDimension[0] ||
+    //   newBallPosition.x <= 0
+    // ) {
+    //   newBallMovement.horizontalVector *= -1;
+    // }
+
+    return { ballPosititon: newBallPosition, ballMovement: newBallMovement };
+  }
+
+  function reCalculateStateOnServerUpdate(
+    lastServerTimestamp: number,
+    newServerTimestamp: number,
+    serverState: InnerState,
+  ) {
+    // handle first update
+    if (lastFrames.every((frame) => frame.serverTimestamp == -1)) {
+      console.log("FIRST UDPATE!!!!!");
+      const missedFrames = lastFrames.length;
+      // not good enough but just for now
+      for (const frame of lastFrames) {
+        frame.serverTimestamp = newServerTimestamp;
+      }
+      console.log("modified first frames count:", missedFrames);
+      return;
+    }
+
+    // trying to find a calculated frame where (ts + (frames*16ms) ~= targetTimestamp). that is the frame I want to re-run from.
+    const index = lastFrames.findIndex(
+      (frame) =>
+        frame.serverTimestamp != -1 &&
+        Math.abs(
+          frame.serverTimestamp + frame.offsetFrames * 16 - newServerTimestamp,
+        ) <= 30,
+    );
+    console.log(
+      "local frame that server is referring to stored at:",
+      index,
+      "delta from end:",
+      lastFrames.length - 1 - index,
+    );
+    if (index == -1) return;
+    for (let i = index; i < lastFrames.length; i++) {
+      const frame = lastFrames[i];
+      frame.serverTimestamp = newServerTimestamp;
+      frame.offsetFrames = i - index;
+
+      if (i == index) {
+        frame.state = serverState;
+        continue;
+      }
+
+      const prevFrame = lastFrames[i - 1];
+      const newState = clientStateCalculation(
+        prevFrame.state.ballPosition,
+        prevFrame.state.ballMovement,
+      );
+      frame.state.ballPosition = newState.ballPosititon;
+      frame.state.ballMovement = newState.ballMovement;
+    }
+
+    // TODO: something is NOT working
   }
 
   function getPositions(state: GameState): {
