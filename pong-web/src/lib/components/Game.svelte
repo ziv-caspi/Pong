@@ -50,16 +50,11 @@
     canvasDimension: { "0": 667, "1": 300 },
   };
   let lastServerTimestamp = -1;
-
   let lastFrames: {
     state: InnerState;
-    serverTimestamp: number;
-    offsetFrames: number;
+    clientTimestamp: number;
   }[] = [];
 
-  // $: scoreView = score
-  //   ? { player: score.leftPlayer.score, oponent: score.rightPlayer.score }
-  //   : undefined;
   $: scoreView = () => {
     if (!innerState.score) return undefined;
     if (innerState.score.leftPlayer.player == playerId) {
@@ -77,9 +72,6 @@
     };
   };
 
-  let frames = 0;
-  let time = Date.now();
-
   onMount(async () => {
     SubscribeToServerMessages(ws, (message) => {
       const state = message.serverPushUpdate?.gameStateChange;
@@ -96,7 +88,7 @@
       innerState.ballMovement = state.state.ballPos.movement;
       innerState.score = state.state.score;
       lastServerTimestamp = state.timestampMs;
-      reCalculateStateOnServerUpdate(oldTs, lastServerTimestamp, innerState);
+      reCalculateStateOnServerUpdate(lastServerTimestamp, innerState);
     });
 
     callbackGameLoop((state) => {
@@ -111,29 +103,14 @@
   }
 
   function handleFrame() {
-    // const msPerFrame = 1000 / 60;
-    // let totalStart = Date.now();
-    // let frames = 0;
-    // let start = Date.now();
-
-    const newState = clientStateCalculation(
-      innerState.ballPosition,
-      innerState.ballMovement,
-    );
+    const newState = clientStateCalculation(innerState);
     innerState.ballPosition = newState.ballPosititon;
     innerState.ballMovement = newState.ballMovement;
 
-    const last = lastFrames.findLast(() => true);
-    const offset =
-      last && last.serverTimestamp == lastServerTimestamp
-        ? last.offsetFrames + 1
-        : 0;
-    const frame = {
+    lastFrames.push({
       state: { ...innerState },
-      serverTimestamp: lastServerTimestamp,
-      offsetFrames: offset,
-    };
-    lastFrames.push(frame);
+      clientTimestamp: Date.now(),
+    });
 
     if (innerState.movement != "none") {
       let yDelta = 10;
@@ -145,102 +122,94 @@
       });
     }
 
-    // let end = Date.now();
-    // const diff = end - start;
-    // const spareFrameTime = msPerFrame - diff;
-    // if (spareFrameTime > 0) {
-    //   //await new Promise((resolve) => setTimeout(resolve, spareFrameTime));
-    // } else {
-    //   console.log("no spare time for frame. diff", spareFrameTime);
-    // }
-    // frames += 1;
-    // if (Date.now() - time >= 1000) {
-    //   console.log("fps:", frames);
-    //   frames = 0;
-    //   time = Date.now();
-    // }
     requestAnimationFrame(handleFrame);
   }
 
-  function clientStateCalculation(
-    ballPosition: Position,
-    ballMovement: MovementVector,
-  ): { ballPosititon: Position; ballMovement: MovementVector } {
-    const newBallPosition: Position = {
-      x: ballPosition.x + ballMovement.horizontalVector,
-      y: ballPosition.y + ballMovement.verticalVector,
-    };
-
-    let newBallMovement = { ...ballMovement };
+  function clientStateCalculation(state: InnerState): {
+    ballPosititon: Position;
+    ballMovement: MovementVector;
+  } {
+    let newBallMovement = { ...state.ballMovement };
     if (
-      newBallPosition.y >= innerState.canvasDimension[1] ||
-      newBallPosition.y <= 0
+      state.ballPosition.y + innerState.ballRadius >=
+        innerState.canvasDimension[1] ||
+      state.ballPosition.y - innerState.ballRadius <= 0
     ) {
       newBallMovement.verticalVector *= -1;
     }
 
-    // if (
-    //   newBallPosition.x >= innerState.canvasDimension[0] ||
-    //   newBallPosition.x <= 0
-    // ) {
-    //   newBallMovement.horizontalVector *= -1;
-    // }
+    const [left, right] = [state.playerPosition, state.oponentPosition].sort(
+      (a, b) => a.x - b.x,
+    );
+
+    const rightPlayerCollision =
+      newBallMovement.horizontalVector > 0 &&
+      state.ballPosition.x + innerState.ballRadius >= right.x &&
+      state.ballPosition.x <= right.x + innerState.playerDimensions[0] &&
+      state.ballPosition.y + innerState.ballRadius >= right.y &&
+      state.ballPosition.y <= right.y + innerState.playerDimensions[1];
+
+    const leftPlayerCOllision =
+      newBallMovement.horizontalVector < 0 &&
+      state.ballPosition.x - innerState.ballRadius <= left.x &&
+      state.ballPosition.x >= left.x + innerState.playerDimensions[0] &&
+      state.ballPosition.y + innerState.ballRadius >= left.y &&
+      state.ballPosition.y <= left.y + innerState.playerDimensions[1];
+
+    if (rightPlayerCollision || leftPlayerCOllision) {
+      newBallMovement.horizontalVector *= -1;
+    }
+
+    const x = state.ballPosition.x + newBallMovement.horizontalVector;
+    const y = state.ballPosition.y + newBallMovement.verticalVector;
+    const newBallPosition: Position = {
+      x: x,
+      y: y >= 0 ? y : 0,
+    };
 
     return { ballPosititon: newBallPosition, ballMovement: newBallMovement };
   }
 
   function reCalculateStateOnServerUpdate(
-    lastServerTimestamp: number,
-    newServerTimestamp: number,
+    serverTimestamp: number,
     serverState: InnerState,
   ) {
-    // handle first update
-    if (lastFrames.every((frame) => frame.serverTimestamp == -1)) {
-      console.log("FIRST UDPATE!!!!!");
-      const missedFrames = lastFrames.length;
-      // not good enough but just for now
-      for (const frame of lastFrames) {
-        frame.serverTimestamp = newServerTimestamp;
-      }
-      console.log("modified first frames count:", missedFrames);
-      return;
-    }
+    // const index = lastFramesV2.findIndex(
+    //   (frame) => Math.abs(frame.clientTimestamp - serverTimestamp) <= 10,
+    // );
 
-    // trying to find a calculated frame where (ts + (frames*16ms) ~= targetTimestamp). that is the frame I want to re-run from.
-    const index = lastFrames.findIndex(
-      (frame) =>
-        frame.serverTimestamp != -1 &&
-        Math.abs(
-          frame.serverTimestamp + frame.offsetFrames * 16 - newServerTimestamp,
-        ) <= 30,
+    const filtered = lastFrames.filter(
+      (frame) => Math.abs(frame.clientTimestamp - serverTimestamp) <= 10,
     );
+    if (filtered.length == 0) return;
+
+    const closest = filtered.sort(
+      (a, b) => a.clientTimestamp - b.clientTimestamp,
+    )[0];
+    const index = lastFrames.indexOf(closest);
     console.log(
-      "local frame that server is referring to stored at:",
-      index,
-      "delta from end:",
-      lastFrames.length - 1 - index,
+      "matching frames:",
+      filtered.length,
+      "closest:",
+      closest,
+      "is exact time:",
+      closest.clientTimestamp == serverTimestamp,
+      "is exact state:",
+      closest.state == serverState,
     );
-    if (index == -1) return;
+
     for (let i = index; i < lastFrames.length; i++) {
       const frame = lastFrames[i];
-      frame.serverTimestamp = newServerTimestamp;
-      frame.offsetFrames = i - index;
-
       if (i == index) {
         frame.state = serverState;
         continue;
       }
 
       const prevFrame = lastFrames[i - 1];
-      const newState = clientStateCalculation(
-        prevFrame.state.ballPosition,
-        prevFrame.state.ballMovement,
-      );
+      const newState = clientStateCalculation(prevFrame.state);
       frame.state.ballPosition = newState.ballPosititon;
       frame.state.ballMovement = newState.ballMovement;
     }
-
-    // TODO: something is NOT working
   }
 
   function getPositions(state: GameState): {
@@ -260,15 +229,6 @@
     }
   }
 </script>
-
-<!-- {#if countdown > 0}
-  <p>{countdown}</p>
-{:else}
-  <p>player: {JSON.stringify(playerPosition)}</p>
-  <p>oponentt: {JSON.stringify(oponentPosition)}</p>
-  <p>ball: {JSON.stringify(ballPosition)}</p>
-  <p>radius: {ballRadius}</p>
-{/if} -->
 
 <GameCanvas
   playerPosition={innerState.playerPosition}
