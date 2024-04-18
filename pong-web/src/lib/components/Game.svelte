@@ -210,6 +210,7 @@
       frame.state.ballPosition = newState.ballPosititon;
       frame.state.ballMovement = newState.ballMovement;
     }
+    lastFrames = [];
   }
 
   function getPositions(state: GameState): {
