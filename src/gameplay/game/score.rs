@@ -22,6 +22,7 @@ impl Score {
             updated = true;
         }
 
+        // TODO: change score back
         if self.left_player.score >= 3 {
             self.winner = Some(self.left_player.player.clone());
             return true;

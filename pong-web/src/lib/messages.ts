@@ -47,7 +47,8 @@ export type MatchStatusChange = {
 
 export type GameStateChange = {
     id: string,
-    state: GameState
+    state: GameState,
+    timestampMs: number,
 }
 
 export type GameState = {
