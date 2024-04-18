@@ -23,10 +23,10 @@ impl Score {
         }
 
         // TODO: change score back
-        if self.left_player.score >= 255 {
+        if self.left_player.score >= 3 {
             self.winner = Some(self.left_player.player.clone());
             return true;
-        } else if self.right_player.score >= 255 {
+        } else if self.right_player.score >= 3 {
             self.winner = Some(self.right_player.player.clone());
             return true;
         }

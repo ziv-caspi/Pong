@@ -2,7 +2,6 @@ mod ball;
 pub mod base;
 mod countdown;
 mod score;
-use std::time::Instant;
 
 use serde_derive::{Deserialize, Serialize};
 
