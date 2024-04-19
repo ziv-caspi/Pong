@@ -120,6 +120,7 @@ impl Game {
                 } else {
                     println!("updated score:  {:#?}", self.score);
                     self.ball.respawn();
+                    //self.countdown.after_score();
                 }
             }
         }

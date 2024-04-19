@@ -63,7 +63,14 @@ pub struct JoinLobbyResponse {
 #[serde(rename_all = "camelCase")]
 pub struct PotentialMatchUpdate {
     pub match_id: String,
-    pub opoonents_ids: Vec<String>,
+    pub opoonents_ids: Vec<PotentialPlayer>,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PotentialPlayer {
+    pub id: String,
+    pub nickname: String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -71,6 +78,7 @@ pub struct PotentialMatchUpdate {
 pub enum MatchStatusChange {
     Stop(String),
     Start(String, String),
+    PlayerReady(String),
 }
 
 #[derive(Deserialize, Serialize, Debug)]

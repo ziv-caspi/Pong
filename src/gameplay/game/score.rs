@@ -3,6 +3,8 @@ use super::{
     Player, PlayerWithScore, Score,
 };
 
+const WINNING_SCORE: u8 = 10;
+
 impl Score {
     pub fn new(left: Player, right: Player) -> Self {
         Score {
@@ -23,10 +25,10 @@ impl Score {
         }
 
         // TODO: change score back
-        if self.left_player.score >= 3 {
+        if self.left_player.score >= WINNING_SCORE {
             self.winner = Some(self.left_player.player.clone());
             return true;
-        } else if self.right_player.score >= 3 {
+        } else if self.right_player.score >= WINNING_SCORE {
             self.winner = Some(self.right_player.player.clone());
             return true;
         }

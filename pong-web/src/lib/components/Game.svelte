@@ -187,16 +187,6 @@
       (a, b) => a.clientTimestamp - b.clientTimestamp,
     )[0];
     const index = lastFrames.indexOf(closest);
-    console.log(
-      "matching frames:",
-      filtered.length,
-      "closest:",
-      closest,
-      "is exact time:",
-      closest.clientTimestamp == serverTimestamp,
-      "is exact state:",
-      closest.state == serverState,
-    );
 
     for (let i = index; i < lastFrames.length; i++) {
       const frame = lastFrames[i];

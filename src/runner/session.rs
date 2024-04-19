@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::{
     gameplay::{
-        game::{OnGameStateUpdate, Position},
+        game::{OnGameStateUpdate, Player, Position},
         GameDatalayer,
     },
     new_matchmaking::{
@@ -98,8 +98,10 @@ where
             (UserMessage::JoinLobbyRequest(_), ClientState::WaitingForMatch) => nothing(),
             (UserMessage::JoinLobbyRequest(request), ClientState::WaitingForMatchApproval) => {
                 self.join_lobby(request)
-            } // magic
-            (UserMessage::JoinLobbyRequest(_), ClientState::InMatchLobby) => nothing(),
+            }
+            (UserMessage::JoinLobbyRequest(request), ClientState::InMatchLobby) => {
+                self.join_lobby(request)
+            }
             (UserMessage::JoinLobbyRequest(_), ClientState::InMatch) => nothing(),
             (UserMessage::MovePlayerRequest(_), ClientState::Unactive) => nothing(),
             (UserMessage::MovePlayerRequest(_), ClientState::WaitingForMatch) => nothing(),
@@ -136,6 +138,10 @@ where
                     let state = ClientState::InMatch;
                     (m, state)
                 }
+                OnMatchStatusChange::OnReady(player) => {
+                    let m = MatchStatusChange::PlayerReady(player);
+                    (m, ClientState::InMatchLobby)
+                }
             };
 
             return (
@@ -159,7 +165,7 @@ where
                 Err(_) => break,
             };
 
-            let match_for_me = message.players.iter().find(|id| id == &my_id).is_some();
+            let match_for_me = message.players.iter().find(|player| &player.id == my_id).is_some();
             if !match_for_me {
                 continue;
             }
