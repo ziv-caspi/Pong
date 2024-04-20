@@ -16,6 +16,7 @@
   } from "$lib/messages";
   import { onMount } from "svelte";
   import GameCanvas from "./GameCanvas.svelte";
+  import BouncingBall from "./BouncingBall.svelte";
 
   type InnerState = {
     playerPosition: Position;
@@ -33,6 +34,8 @@
   export let matchId: string;
   export let playerId: string;
   export let ws: WebSocket;
+  export let playerNickname: string;
+  export let oponentNicknae: string;
 
   let innerState: InnerState = {
     playerPosition: { x: -100, y: -100 },
@@ -55,9 +58,10 @@
     clientTimestamp: number;
   }[] = [];
 
+  $: playerIsRight = () => innerState.score?.rightPlayer.player == playerId;
   $: scoreView = () => {
     if (!innerState.score) return undefined;
-    if (innerState.score.leftPlayer.player == playerId) {
+    if (!playerIsRight()) {
       return {
         player: innerState.score.leftPlayer.score,
         oponent: innerState.score.rightPlayer.score,
@@ -71,8 +75,24 @@
       playerIsRight: true,
     };
   };
+  $: nicknameBySide = (
+    side: "left" | "right",
+  ): { nickname: string; color: string } => {
+    console.log("nicknamme");
+    const player = { nickname: playerNickname, color: "text-green-400" };
+    const opponent = { nickname: oponentNicknae, color: "text-black" };
+
+    if (side == "right") {
+      if (playerIsRight()) return player;
+      else return opponent;
+    } else {
+      if (!playerIsRight()) return player;
+      else return opponent;
+    }
+  };
 
   onMount(async () => {
+    console.log(playerId, playerNickname, oponentNicknae);
     SubscribeToServerMessages(ws, (message) => {
       const state = message.serverPushUpdate?.gameStateChange;
       if (!state) return;
@@ -221,6 +241,18 @@
   }
 </script>
 
+<div class="flex flex-row gap-x-80 font-bold text-lg">
+  <div>
+    <p class={nicknameBySide("left").color}>
+      {nicknameBySide("left").nickname}
+    </p>
+  </div>
+  <div>
+    <p class={nicknameBySide("right").color}>
+      {nicknameBySide("right").nickname}
+    </p>
+  </div>
+</div>
 <GameCanvas
   playerPosition={innerState.playerPosition}
   oponentPosition={innerState.oponentPosition}

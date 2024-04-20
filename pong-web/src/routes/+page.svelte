@@ -52,7 +52,13 @@
     />
   {/if}
   {#if state == "in match"}
-    <Game {matchId} playerId={player.id} ws={data.ws} />
+    <Game
+      {matchId}
+      playerId={player.id}
+      ws={data.ws}
+      playerNickname={player.nickname}
+      oponentNicknae={oponent.nickname}
+    />
   {/if}
   <!-- <button on:click={() => (countdown += 1)}>count</button> -->
   <!-- <GameCanvas
