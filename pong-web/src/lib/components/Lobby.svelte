@@ -54,17 +54,10 @@
 
 <div class="m-10"></div>
 <!-- <p>match id: {matchId}. playerId: {playerId}</p> -->
-{#if !players.player.ready}
-  <button
-    class="col-span-2 px-3 py-2 rounded-md text-white bg-blue-500 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-    on:click={ready}
-  >
-    I'm Ready!
-  </button>
-{/if}
-<div class="grid grid-cols-2 m-10 text-center" style="max-height: 500px;">
+
+<div class="grid grid-cols-3 m-10 text-center" style="max-height: 500px;">
   <div class="m-2">
-    <p class="text-green-400">{players.oponent.nickname}</p>
+    <p class="text-black">{players.oponent.nickname}</p>
     <BouncingBall height={200} active={!players.oponent.ready} />
     {#if players.oponent.ready}
       <p class="text-green-500 font-bold">READY</p>
@@ -73,7 +66,17 @@
     {/if}
   </div>
   <div class="m-2">
-    <p class="text-black">{players.player.nickname}</p>
+    {#if !players.player.ready}
+      <button
+        class="col-span-2 px-3 py-2 rounded-md text-white bg-blue-500 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        on:click={ready}
+      >
+        I'm Ready!
+      </button>
+    {/if}
+  </div>
+  <div class="m-2">
+    <p class="text-green-400">{players.player.nickname}</p>
     <BouncingBall height={200} active={!players.player.ready} />
     {#if players.player.ready}
       <p class="text-green-500 font-bold">READY</p>
