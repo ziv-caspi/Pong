@@ -13,7 +13,14 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 websocket = "*"
-rand  = "*"
+rand  = "0.8.5"
+# for embedded http server
+tokio = { version = "1.27", features = ["full"] }
+warp = "0.3"
+warp-embed = "0.4"
+rust-embed = "6"
+log = "0.4"
+env_logger = "0.10"
 
 [dependencies.uuid]
 version = "1.6.1"
