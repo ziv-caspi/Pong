@@ -1,26 +1,27 @@
 <script lang="ts">
+  import BouncingBall from "$lib/components/BouncingBall.svelte";
   import Game from "$lib/components/Game.svelte";
   import GameCanvas from "$lib/components/GameCanvas.svelte";
   import Lobby from "$lib/components/Lobby.svelte";
   import OfflineGame from "$lib/components/OfflineGame.svelte";
   import Register from "$lib/components/Register.svelte";
-  import type { Position } from "$lib/messages";
+  import type { Position, PotentialPlayer } from "$lib/messages";
   import "../app.css";
 
   export let data;
   let state: "register" | "in lobby" | "in match" = "register";
   let matchId: string;
-  let playerId: string;
+  let player: PotentialPlayer;
+  let oponent: PotentialPlayer;
 
-  let playerPosition: Position = { x: 25, y: 50 };
-  let oponentPosition: Position = { x: 667 - 25, y: 50 };
-  let ballPosition: Position = { x: 150, y: 150 };
-  let ballRadius = 12;
-  let countdown = -1;
-
-  function onMatchEnter(match: string, player: string): void {
+  function onMatchEnter(
+    match: string,
+    playerP: PotentialPlayer,
+    oponentP: PotentialPlayer,
+  ): void {
     matchId = match;
-    playerId = player;
+    player = playerP;
+    oponent = oponentP;
     state = "in lobby";
   }
 
@@ -36,10 +37,30 @@
     <Register ws={data.ws} {onMatchEnter} />
   {/if}
   {#if state == "in lobby"}
-    <Lobby ws={data.ws} {matchId} {playerId} {onMatchStart} />
+    <Lobby
+      ws={data.ws}
+      {matchId}
+      {onMatchStart}
+      onMatchDeath={() => {
+        location.reload();
+      }}
+      players={{
+        player: { id: player.id, nickname: player.nickname, ready: false },
+        oponent: { id: oponent.id, nickname: oponent.nickname, ready: false },
+      }}
+    />
   {/if}
   {#if state == "in match"}
-    <Game {matchId} {playerId} ws={data.ws} />
+    <Game
+      {matchId}
+      playerId={player.id}
+      ws={data.ws}
+      playerNickname={player.nickname}
+      oponentNicknae={oponent.nickname}
+      onGameFinished={() => {
+        location.reload();
+      }}
+    />
   {/if}
   <!-- <button on:click={() => (countdown += 1)}>count</button> -->
   <!-- <GameCanvas

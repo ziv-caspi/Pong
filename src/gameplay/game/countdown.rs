@@ -9,10 +9,7 @@ pub struct Countdown {
 
 impl Countdown {
     pub fn new() -> Self {
-        Self {
-            current: COUNTDOWN,
-            last_change: Instant::now(),
-        }
+        Self { current: COUNTDOWN, last_change: Instant::now() }
     }
 
     pub fn count(&mut self) -> bool {
@@ -29,5 +26,10 @@ impl Countdown {
             }
             false => false,
         }
+    }
+
+    pub fn after_score(&mut self) {
+        self.current = COUNTDOWN;
+        self.last_change = Instant::now();
     }
 }

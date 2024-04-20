@@ -7,14 +7,14 @@ use anyhow::{anyhow, bail, Ok, Result};
 use crossbeam::channel::{bounded, Sender};
 use uuid::Uuid;
 
-use crate::utils::events::EventTopic;
+use crate::{runner::messages::PotentialPlayer, utils::events::EventTopic};
 
 const MATCH_TIMEOUT: u64 = 60;
 
 #[derive(Clone)]
 pub struct OnNewMatch {
     pub match_id: String,
-    pub players: Vec<String>,
+    pub players: Vec<PotentialPlayer>,
 }
 
 #[derive(Clone)]
@@ -49,6 +49,7 @@ pub enum OnMatchStatusChange {
     OnTimeout(String),
     OnDeath(String),
     OnStart(OnMatchStart),
+    OnReady(String),
 }
 
 #[derive(Clone, Debug)]
@@ -84,23 +85,13 @@ impl MatchmakingDataLayer {
     }
 
     pub fn register(&mut self, user: User) -> Result<()> {
-        if let Some(_) = self
-            .pending_players
-            .iter()
-            .find(|player| player.user.id == user.id)
-        {
+        if let Some(_) = self.pending_players.iter().find(|player| player.user.id == user.id) {
             bail!("there is already a player with this id");
         }
 
-        self.pending_players.push(PendingUser {
-            user,
-            available: true,
-        });
+        self.pending_players.push(PendingUser { user, available: true });
 
-        println!(
-            "registered client, current size: {}",
-            self.pending_players.len()
-        );
+        println!("registered client, current size: {}", self.pending_players.len());
         self.look_for_matches();
 
         Ok(())
@@ -120,18 +111,19 @@ impl MatchmakingDataLayer {
                 players.push(self.pending_players.pop().unwrap());
             }
 
-            let message: Vec<String> = players
+            let potential_players: Vec<PotentialPlayer> = players
                 .iter()
                 .map(|m| {
                     self.refresh_availabillty(m.user.id.clone(), false);
-                    m.user.id.clone()
+                    //m.user.id.clone()
+                    PotentialPlayer { id: m.user.id.clone(), nickname: m.user.nickname.clone() }
                 })
                 .collect();
-            let id = self.create_match(&message);
-            self.events.on_new_match.invoke(OnNewMatch {
-                match_id: id,
-                players: message,
-            });
+            let ids: Vec<String> = potential_players.iter().map(|p| p.id.clone()).collect();
+            let id = self.create_match(&ids);
+            self.events
+                .on_new_match
+                .invoke(OnNewMatch { match_id: id, players: potential_players });
         }
     }
 
@@ -150,28 +142,20 @@ impl MatchmakingDataLayer {
             bail!("this player is not a part of this match");
         }
 
-        // if let None = m
-        //     .potential_players
-        //     .iter()
-        //     .find(|player| player.to_owned().to_owned() == player_id)
-        // {
-
-        // }
-
-        m.ready_players.push(player_id);
+        m.ready_players.push(player_id.clone());
         println!("new ready player, ready players: {}", m.ready_players.len());
+        self.events.on_match_change.invoke(OnMatchStatusChange::OnReady(player_id));
+
         if m.ready_players.len() == m.potential_players.len() {
             println!("starting match!");
             m.start();
             let player1 = &m.ready_players[0];
             let player2 = &m.ready_players[1];
-            self.events
-                .on_match_change
-                .invoke(OnMatchStatusChange::OnStart(OnMatchStart {
-                    match_id: m.id.clone(),
-                    player1: player1.to_owned(),
-                    player2: player2.to_owned(),
-                }))
+            self.events.on_match_change.invoke(OnMatchStatusChange::OnStart(OnMatchStart {
+                match_id: m.id.clone(),
+                player1: player1.to_owned(),
+                player2: player2.to_owned(),
+            }))
         }
 
         Ok(())
@@ -212,9 +196,7 @@ impl MatchmakingDataLayer {
     fn delete_match(&mut self, match_id: String) -> Result<()> {
         let i = self.match_position_by_id(&match_id)?;
         self.matches.remove(i);
-        self.events
-            .on_match_change
-            .invoke(OnMatchStatusChange::OnDeath(match_id));
+        self.events.on_match_change.invoke(OnMatchStatusChange::OnDeath(match_id));
         Ok(())
     }
 
@@ -225,11 +207,7 @@ impl MatchmakingDataLayer {
     }
 
     fn player_position_by_id(&self, id: &str) -> Result<usize> {
-        match self
-            .pending_players
-            .iter()
-            .position(|player| player.user.id == id)
-        {
+        match self.pending_players.iter().position(|player| player.user.id == id) {
             Some(pos) => Ok(pos),
             None => Err(anyhow!("could not find player with this id")),
         }

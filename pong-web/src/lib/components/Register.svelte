@@ -1,7 +1,13 @@
 <script lang="ts">
   import { RecvResponse, SendUserMessage, WaitForMatchUpdate } from "$lib/api";
+  import type { PotentialPlayer } from "$lib/messages";
+  import BouncingBall from "./BouncingBall.svelte";
   export let ws: WebSocket;
-  export let onMatchEnter: (matchId: string, playerId: string) => void;
+  export let onMatchEnter: (
+    matchId: string,
+    playerId: PotentialPlayer,
+    oponent: PotentialPlayer,
+  ) => void;
 
   let nickname: string;
   let id: string | undefined = undefined;
@@ -21,14 +27,25 @@
       console.log("waiting for message");
       const match = await WaitForMatchUpdate(ws);
       waiting = false;
-      onMatchEnter(match.matchId, id);
+      onMatchEnter(
+        match.matchId,
+        { id, nickname },
+        match.opoonentsIds.find((p) => p.id != id)!,
+      );
     } else if (matchId) {
       // messages arent in order
-      let response = await RecvResponse(ws);
-      id = response.queueUpResponse?.Ok.id;
+      let newResponse = await RecvResponse(ws);
+      id = newResponse.queueUpResponse?.Ok.id;
       console.log(id);
       waiting = false;
-      onMatchEnter(matchId, id!);
+
+      onMatchEnter(
+        matchId,
+        { id: id!, nickname },
+        response.serverPushUpdate!.potentialMatchUpdate!.opoonentsIds.find(
+          (p) => p.id != id,
+        )!,
+      );
     }
   };
 </script>

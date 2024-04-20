@@ -16,6 +16,7 @@
   } from "$lib/messages";
   import { onMount } from "svelte";
   import GameCanvas from "./GameCanvas.svelte";
+  import BouncingBall from "./BouncingBall.svelte";
 
   type InnerState = {
     playerPosition: Position;
@@ -33,6 +34,9 @@
   export let matchId: string;
   export let playerId: string;
   export let ws: WebSocket;
+  export let playerNickname: string;
+  export let oponentNicknae: string;
+  export let onGameFinished: () => void;
 
   let innerState: InnerState = {
     playerPosition: { x: -100, y: -100 },
@@ -55,9 +59,19 @@
     clientTimestamp: number;
   }[] = [];
 
+  $: winner = (): "player" | "opponent" | undefined => {
+    const calc = () => {
+      if (!innerState.score?.winner) return undefined;
+      if (innerState.score.winner == playerId) return "player";
+      else return "opponent";
+    };
+    console.log(calc());
+    return calc();
+  };
+  $: playerIsRight = () => innerState.score?.rightPlayer.player == playerId;
   $: scoreView = () => {
     if (!innerState.score) return undefined;
-    if (innerState.score.leftPlayer.player == playerId) {
+    if (!playerIsRight()) {
       return {
         player: innerState.score.leftPlayer.score,
         oponent: innerState.score.rightPlayer.score,
@@ -71,9 +85,26 @@
       playerIsRight: true,
     };
   };
+  $: nicknameBySide = (
+    side: "left" | "right",
+  ): { nickname: string; color: string } => {
+    console.log("nicknamme");
+    const player = { nickname: playerNickname, color: "text-green-400" };
+    const opponent = { nickname: oponentNicknae, color: "text-black" };
+
+    if (side == "right") {
+      if (playerIsRight()) return player;
+      else return opponent;
+    } else {
+      if (!playerIsRight()) return player;
+      else return opponent;
+    }
+  };
 
   onMount(async () => {
+    console.log(playerId, playerNickname, oponentNicknae);
     SubscribeToServerMessages(ws, (message) => {
+      if (winner()) return;
       const state = message.serverPushUpdate?.gameStateChange;
       if (!state) return;
       console.log("lag:", Date.now() - state.timestampMs);
@@ -103,6 +134,7 @@
   }
 
   function handleFrame() {
+    if (winner()) return;
     const newState = clientStateCalculation(innerState);
     innerState.ballPosition = newState.ballPosititon;
     innerState.ballMovement = newState.ballMovement;
@@ -187,16 +219,6 @@
       (a, b) => a.clientTimestamp - b.clientTimestamp,
     )[0];
     const index = lastFrames.indexOf(closest);
-    console.log(
-      "matching frames:",
-      filtered.length,
-      "closest:",
-      closest,
-      "is exact time:",
-      closest.clientTimestamp == serverTimestamp,
-      "is exact state:",
-      closest.state == serverState,
-    );
 
     for (let i = index; i < lastFrames.length; i++) {
       const frame = lastFrames[i];
@@ -231,6 +253,18 @@
   }
 </script>
 
+<div class="flex flex-row gap-x-80 font-bold text-lg">
+  <div>
+    <p class={nicknameBySide("left").color}>
+      {nicknameBySide("left").nickname}
+    </p>
+  </div>
+  <div>
+    <p class={nicknameBySide("right").color}>
+      {nicknameBySide("right").nickname}
+    </p>
+  </div>
+</div>
 <GameCanvas
   playerPosition={innerState.playerPosition}
   oponentPosition={innerState.oponentPosition}
@@ -246,4 +280,8 @@
   }}
   canvasDimennsion={innerState.canvasDimension}
   playerDimensions={innerState.playerDimensions}
+  winner={winner()}
 />
+{#if winner()}
+  <button on:click={onGameFinished}>Home</button>
+{/if}

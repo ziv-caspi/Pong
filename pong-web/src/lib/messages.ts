@@ -29,7 +29,12 @@ export type ServerPushUpdate = {
 
 export type PotentialMatchUpdate = {
     matchId: string,
-    opoonentsIds: string[]
+    opoonentsIds: PotentialPlayer[]
+}
+
+export type PotentialPlayer = {
+    id: string,
+    nickname: string
 }
 
 export type JoinLobbyRequest = {
@@ -41,8 +46,9 @@ export type JoinLobbyResponse = {
 }
 
 export type MatchStatusChange = {
-    start: string[]
-    stop: string
+    start?: string[]
+    stop?: string
+    playerReady?: string
 }
 
 export type GameStateChange = {

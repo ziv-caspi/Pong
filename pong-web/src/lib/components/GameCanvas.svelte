@@ -20,6 +20,7 @@
         playerIsRight: boolean;
       };
   export let onPlayerMovementChange: (movement: Movement) => void;
+  export let winner: "player" | "opponent" | undefined;
 
   let movement: Movement = "none";
 
@@ -86,6 +87,17 @@
     }
   };
 
+  let winnerView: Render;
+  $: winnerView = ({ context, width, height }) => {
+    if (!winner) return;
+    context.font = `${width / 15}px sans-serif`;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillStyle = "tomato";
+    const text = winner == "player" ? "YOU WIN!" : "YOU LOSE!";
+    context.fillText(text, width / 1.85, height - height / 6);
+  };
+
   function getTouchRelativePosition(event: TouchEvent): Position {
     return {
       x: event.targetTouches[0].clientX - rect.left,
@@ -130,4 +142,5 @@
   <Layer render={player} />
   <Layer render={oponent} />
   <Layer render={ball} />
+  <Layer render={winnerView} />
 </Canvas>
