@@ -14,12 +14,6 @@
   let player: PotentialPlayer;
   let oponent: PotentialPlayer;
 
-  let playerPosition: Position = { x: 25, y: 50 };
-  let oponentPosition: Position = { x: 667 - 25, y: 50 };
-  let ballPosition: Position = { x: 150, y: 150 };
-  let ballRadius = 12;
-  let countdown = -1;
-
   function onMatchEnter(
     match: string,
     playerP: PotentialPlayer,
@@ -47,6 +41,10 @@
       ws={data.ws}
       {matchId}
       {onMatchStart}
+      onMatchDeath={() => {
+        matchId = "";
+        state = "register";
+      }}
       players={{
         player: { id: player.id, nickname: player.nickname, ready: false },
         oponent: { id: oponent.id, nickname: oponent.nickname, ready: false },

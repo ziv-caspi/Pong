@@ -13,6 +13,7 @@
   export let ws: WebSocket;
   export let matchId: string;
   export let onMatchStart: (playerIds: string[]) => void;
+  export let onMatchDeath: () => void;
   export let players: {
     player: { id: string; nickname: string; ready: boolean };
     oponent: { id: string; nickname: string; ready: boolean };
@@ -42,7 +43,9 @@
     }
 
     if (change.stop) {
+      alert("This Game Is No Longer Available :(");
       console.error("game died!!", change.stop);
+      onMatchDeath();
       return;
     }
 
