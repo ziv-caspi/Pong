@@ -36,6 +36,7 @@
   export let ws: WebSocket;
   export let playerNickname: string;
   export let oponentNicknae: string;
+  export let onGameFinished: () => void;
 
   let innerState: InnerState = {
     playerPosition: { x: -100, y: -100 },
@@ -58,6 +59,15 @@
     clientTimestamp: number;
   }[] = [];
 
+  $: winner = (): "player" | "opponent" | undefined => {
+    const calc = () => {
+      if (!innerState.score?.winner) return undefined;
+      if (innerState.score.winner == playerId) return "player";
+      else return "opponent";
+    };
+    console.log(calc());
+    return calc();
+  };
   $: playerIsRight = () => innerState.score?.rightPlayer.player == playerId;
   $: scoreView = () => {
     if (!innerState.score) return undefined;
@@ -94,6 +104,7 @@
   onMount(async () => {
     console.log(playerId, playerNickname, oponentNicknae);
     SubscribeToServerMessages(ws, (message) => {
+      if (winner()) return;
       const state = message.serverPushUpdate?.gameStateChange;
       if (!state) return;
       console.log("lag:", Date.now() - state.timestampMs);
@@ -123,6 +134,7 @@
   }
 
   function handleFrame() {
+    if (winner()) return;
     const newState = clientStateCalculation(innerState);
     innerState.ballPosition = newState.ballPosititon;
     innerState.ballMovement = newState.ballMovement;
@@ -268,4 +280,8 @@
   }}
   canvasDimennsion={innerState.canvasDimension}
   playerDimensions={innerState.playerDimensions}
+  winner={winner()}
 />
+{#if winner()}
+  <button on:click={onGameFinished}>Home</button>
+{/if}

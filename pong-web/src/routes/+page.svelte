@@ -42,8 +42,7 @@
       {matchId}
       {onMatchStart}
       onMatchDeath={() => {
-        matchId = "";
-        state = "register";
+        location.reload();
       }}
       players={{
         player: { id: player.id, nickname: player.nickname, ready: false },
@@ -58,6 +57,9 @@
       ws={data.ws}
       playerNickname={player.nickname}
       oponentNicknae={oponent.nickname}
+      onGameFinished={() => {
+        location.reload();
+      }}
     />
   {/if}
   <!-- <button on:click={() => (countdown += 1)}>count</button> -->
