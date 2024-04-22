@@ -59,13 +59,15 @@
     clientTimestamp: number;
   }[] = [];
 
+  let framesInSec = 0;
+  let startMs = Date.now();
+
   $: winner = (): "player" | "opponent" | undefined => {
     const calc = () => {
       if (!innerState.score?.winner) return undefined;
       if (innerState.score.winner == playerId) return "player";
       else return "opponent";
     };
-    console.log(calc());
     return calc();
   };
   $: playerIsRight = () => innerState.score?.rightPlayer.player == playerId;
@@ -88,7 +90,6 @@
   $: nicknameBySide = (
     side: "left" | "right",
   ): { nickname: string; color: string } => {
-    console.log("nicknamme");
     const player = { nickname: playerNickname, color: "text-green-400" };
     const opponent = { nickname: oponentNicknae, color: "text-black" };
 
@@ -102,13 +103,15 @@
   };
 
   onMount(async () => {
-    console.log(playerId, playerNickname, oponentNicknae);
     SubscribeToServerMessages(ws, (message) => {
       if (winner()) return;
       const state = message.serverPushUpdate?.gameStateChange;
       if (!state) return;
       console.log("lag:", Date.now() - state.timestampMs);
-      const oldTs = lastServerTimestamp;
+      console.log(
+        "since last update:",
+        state.timestampMs - lastServerTimestamp,
+      );
       const positions = getPositions(state.state);
       innerState.playerPosition = positions.player;
       innerState.oponentPosition = positions.oponent;
@@ -119,6 +122,7 @@
       innerState.ballMovement = state.state.ballPos.movement;
       innerState.score = state.state.score;
       lastServerTimestamp = state.timestampMs;
+      console.log("ballMovement", innerState.ballMovement);
       reCalculateStateOnServerUpdate(lastServerTimestamp, innerState);
     });
 
@@ -135,6 +139,14 @@
 
   function handleFrame() {
     if (winner()) return;
+
+    const now = Date.now();
+    framesInSec += 1;
+    if (now - startMs >= 1000) {
+      console.log("fps:", framesInSec);
+      framesInSec = 0;
+      startMs = now;
+    }
     const newState = clientStateCalculation(innerState);
     innerState.ballPosition = newState.ballPosititon;
     innerState.ballMovement = newState.ballMovement;

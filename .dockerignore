@@ -1,0 +1,15 @@
+# Ignore files and directories commonly not needed in Docker images
+
+# Ignore git related files and directories
+.git
+.gitignore
+
+# Ignore node_modules directory (since we install dependencies during Docker build)
+pong-web/node_modules
+
+# Ignore target directory (since we build Rust binary during Docker build)
+target
+
+# Ignore any other files or directories specific to your project
+# Add them here if necessary
+web/dist/*
