@@ -26,6 +26,8 @@ pub struct Game {
     countdown: Countdown,
     score: Score,
     last_frame: Instant,
+    second_start: Instant,
+    fps: u128,
 }
 
 impl Game {
@@ -48,6 +50,8 @@ impl Game {
             ball: Ball::new(SCREEN_SIZE),
             countdown: Countdown::new(),
             last_frame: Instant::now(),
+            second_start: Instant::now(),
+            fps: 0,
         }
     }
 
@@ -97,10 +101,20 @@ impl Game {
     }
 
     pub fn tick(&mut self) -> Option<GameState> {
-        let diff = Instant::now() - self.last_frame;
-        if diff.as_millis() < MILLIS_BETWEEN_FRAMES {
+        let diff = self.last_frame.elapsed().as_millis();
+        if diff < MILLIS_BETWEEN_FRAMES {
             return None;
+        } else {
+            self.last_frame += self.last_frame.elapsed();
         }
+
+        self.fps += 1;
+        if self.second_start.elapsed().as_millis() >= 1000 {
+            println!("FPS: {}", self.fps);
+            self.fps = 0;
+            self.second_start += self.second_start.elapsed();
+        }
+
         let count_change = self.countdown.count();
         if count_change {
             return Some(self.get_state());
@@ -116,9 +130,7 @@ impl Game {
                 if let Some(winner) = &self.score.winner {
                     self.ball.respawn();
                     self.ball.speed = 0;
-                    println!("winner: {}", winner);
                 } else {
-                    println!("updated score:  {:#?}", self.score);
                     self.ball.respawn();
                     //self.countdown.after_score();
                 }
@@ -139,6 +151,19 @@ impl Game {
             return Ok(&mut self.player2);
         } else {
             bail!("could not find player id in this game")
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fpss() {
+        let mut game = Game::new(String::from("ABC"), String::from("1"), String::from("2"));
+        loop {
+            game.tick();
         }
     }
 }

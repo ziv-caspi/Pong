@@ -14,6 +14,7 @@ serde_derive = "1.0"
 serde_json = "1.0"
 websocket = "*"
 rand  = "0.8.5"
+#openssl = { version = "0.10.35", features = ["vendored"] }
 # for embedded http server
 tokio = { version = "1.27", features = ["full"] }
 warp = "0.3"
