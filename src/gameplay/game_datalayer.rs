@@ -27,7 +27,7 @@ impl MemoryGameDatalayer {
 
 impl GameDatalayer for MemoryGameDatalayer {
     fn new_game(&mut self, match_id: String, player1_id: String, player2_id: String) -> GameState {
-        let game = Game::new(match_id.clone(), player1_id, player2_id);
+        let mut game = Game::new(match_id.clone(), player1_id, player2_id);
         let state = game.get_state();
         self.games.push(game);
         self.on_game_update.invoke(OnGameStateUpdate {
@@ -38,7 +38,13 @@ impl GameDatalayer for MemoryGameDatalayer {
         state
     }
 
-    fn move_player(&mut self, match_id: &str, player_id: &str, delta: i32) -> Result<()> {
+    fn move_player(
+        &mut self,
+        match_id: &str,
+        player_id: &str,
+        delta: i32,
+        action_id: &str,
+    ) -> Result<()> {
         let game = self.get_game_by_id(match_id)?;
 
         let normalized: u32;
@@ -51,7 +57,7 @@ impl GameDatalayer for MemoryGameDatalayer {
             up = false;
         }
 
-        let state = game.move_player(player_id, normalized, up)?;
+        let state = game.move_player(player_id, normalized, up, action_id)?;
         self.on_game_update.invoke(OnGameStateUpdate {
             id: match_id.to_owned(),
             state: state,

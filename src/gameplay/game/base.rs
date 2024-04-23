@@ -1,5 +1,4 @@
 use anyhow::{bail, Result};
-use std::time::Instant;
 
 use super::{
     ball::{Ball, BallMovementResult, Collision},
@@ -26,6 +25,7 @@ pub struct Game {
     countdown: Countdown,
     score: Score,
     fps_guard: FpsGuard,
+    unreported_actions: Vec<String>,
 }
 
 impl Game {
@@ -48,10 +48,11 @@ impl Game {
             ball: Ball::new(SCREEN_SIZE),
             countdown: Countdown::new(),
             fps_guard: FpsGuard::new(SERVER_FPS),
+            unreported_actions: vec![],
         }
     }
 
-    pub fn get_state(&self) -> GameState {
+    pub fn get_state(&mut self) -> GameState {
         let mut horizontal_vector = self.ball.speed as i32;
         let mut vertical_vector = self.ball.speed as i32;
         if !self.ball.is_right {
@@ -61,7 +62,7 @@ impl Game {
             vertical_vector *= -1;
         }
 
-        GameState {
+        let state = GameState {
             player1_pos: self.player1.clone(),
             player2_pos: self.player2.clone(),
             ball_pos: super::BallInfo {
@@ -71,10 +72,20 @@ impl Game {
             },
             countdown: self.countdown.current,
             score: self.score.clone(),
-        }
+            handled_actions: self.unreported_actions.clone(),
+        };
+
+        self.unreported_actions.clear();
+        state
     }
 
-    pub fn move_player(&mut self, player_id: &str, delta: u32, up: bool) -> Result<GameState> {
+    pub fn move_player(
+        &mut self,
+        player_id: &str,
+        delta: u32,
+        up: bool,
+        action_id: &str,
+    ) -> Result<GameState> {
         let player = self.get_player_by_id(player_id)?;
 
         if up {
@@ -93,6 +104,7 @@ impl Game {
             }
         }
 
+        self.unreported_actions.push(action_id.to_owned());
         Ok(self.get_state())
     }
 

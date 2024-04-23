@@ -17,13 +17,6 @@ use std::{
 use crate::runner::session::ClientSession;
 
 pub fn start() {
-    let user_example = UserMessage::MovePlayerRequest(MovePlayerRequest {
-        match_id: String::from("abc"),
-        y_delta: -5,
-    });
-    let s = serde_json::to_string(&user_example).unwrap();
-    println!("{:?}", s);
-
     let initializer = Initializer::init();
 
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap();

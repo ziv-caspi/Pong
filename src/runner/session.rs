@@ -263,7 +263,12 @@ where
             }
         };
 
-        match self.gameplay.move_player(&request.match_id, user_id, request.y_delta) {
+        match self.gameplay.move_player(
+            &request.match_id,
+            user_id,
+            request.y_delta,
+            &request.action_id,
+        ) {
             Ok(_) => (
                 ServerMessage::MovePlayerResponse(Ok(MovePlayerResponse {
                     match_id: request.match_id.to_owned(),

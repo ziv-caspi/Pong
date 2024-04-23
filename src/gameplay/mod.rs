@@ -14,7 +14,13 @@ pub mod game_datalayer;
 pub trait GameDatalayer {
     fn get_on_game_change(&self) -> EventTopic<OnGameStateUpdate>;
     fn new_game(&mut self, match_id: String, player1_id: String, player2_id: String) -> GameState;
-    fn move_player(&mut self, match_id: &str, player_id: &str, delta: i32) -> Result<()>;
+    fn move_player(
+        &mut self,
+        match_id: &str,
+        player_id: &str,
+        delta: i32,
+        action_id: &str,
+    ) -> Result<()>;
     fn tick(&mut self);
     fn remove_player(&mut self, player: &str, game: &str) -> Result<()>;
 }
@@ -39,9 +45,15 @@ impl GameDatalayer for SafeGameDatalayer {
         dl.new_game(match_id, player1_id, player2_id)
     }
 
-    fn move_player(&mut self, match_id: &str, player_id: &str, delta: i32) -> Result<()> {
+    fn move_player(
+        &mut self,
+        match_id: &str,
+        player_id: &str,
+        delta: i32,
+        action_id: &str,
+    ) -> Result<()> {
         let mut dl = self.inner.lock().unwrap();
-        dl.move_player(match_id, player_id, delta)
+        dl.move_player(match_id, player_id, delta, action_id)
     }
 
     fn get_on_game_change(&self) -> EventTopic<OnGameStateUpdate> {
