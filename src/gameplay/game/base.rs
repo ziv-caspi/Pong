@@ -129,10 +129,9 @@ impl Game {
             if self.score.update(border) {
                 if let Some(winner) = &self.score.winner {
                     self.ball.respawn();
-                    self.ball.speed = 0;
                 } else {
                     self.ball.respawn();
-                    //self.countdown.after_score();
+                    self.countdown.after_score();
                 }
             }
         }
