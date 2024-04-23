@@ -17,6 +17,7 @@
   import { onMount } from "svelte";
   import GameCanvas from "./GameCanvas.svelte";
   import BouncingBall from "./BouncingBall.svelte";
+  import { v4 as uuidv4 } from "uuid";
 
   type InnerState = {
     playerPosition: Position;
@@ -161,8 +162,9 @@
       if (innerState.movement == "up") {
         yDelta *= -1;
       }
+      const actionId = uuidv4();
       SendUserMessageWithoutResponses(ws, {
-        movePlayerRequest: { matchId, yDelta },
+        movePlayerRequest: { matchId, yDelta, actionId },
       });
     }
 
