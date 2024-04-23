@@ -1,3 +1,4 @@
+mod fps_guard;
 mod ball;
 pub mod base;
 mod countdown;

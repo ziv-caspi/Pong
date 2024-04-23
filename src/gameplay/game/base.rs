@@ -4,6 +4,7 @@ use std::time::Instant;
 use super::{
     ball::{Ball, BallMovementResult, Collision},
     countdown::Countdown,
+    fps_guard::{FpsGuard, FpsResult},
     GameState, Player, Position, Score,
 };
 
@@ -15,8 +16,7 @@ const PLAYER_START_X: u32 = SCREEN_SIZE.0 / 8;
 const PLAYER1_START_X: u32 = PLAYER_START_X;
 const PLAYER2_START_X: u32 = SCREEN_SIZE.0 - PLAYER_START_X;
 
-const SERVER_FPS: u128 = 60;
-const MILLIS_BETWEEN_FRAMES: u128 = 1000 / SERVER_FPS;
+const SERVER_FPS: u8 = 60;
 
 pub struct Game {
     pub match_id: String,
@@ -25,9 +25,7 @@ pub struct Game {
     ball: Ball,
     countdown: Countdown,
     score: Score,
-    last_frame: Instant,
-    second_start: Instant,
-    fps: u128,
+    fps_guard: FpsGuard,
 }
 
 impl Game {
@@ -49,9 +47,7 @@ impl Game {
             player2,
             ball: Ball::new(SCREEN_SIZE),
             countdown: Countdown::new(),
-            last_frame: Instant::now(),
-            second_start: Instant::now(),
-            fps: 0,
+            fps_guard: FpsGuard::new(SERVER_FPS),
         }
     }
 
@@ -101,18 +97,13 @@ impl Game {
     }
 
     pub fn tick(&mut self) -> Option<GameState> {
-        let diff = self.last_frame.elapsed().as_millis();
-        if diff < MILLIS_BETWEEN_FRAMES {
-            return None;
-        } else {
-            self.last_frame += self.last_frame.elapsed();
-        }
-
-        self.fps += 1;
-        if self.second_start.elapsed().as_millis() >= 1000 {
-            println!("FPS: {}", self.fps);
-            self.fps = 0;
-            self.second_start += self.second_start.elapsed();
+        match self.fps_guard.guard() {
+            FpsResult::Run(report) => {
+                if let Some(fps) = report {
+                    println!("FPS: {}", fps);
+                }
+            }
+            FpsResult::Skip => return None,
         }
 
         let count_change = self.countdown.count();
@@ -127,7 +118,7 @@ impl Game {
         let ball_change = self.ball.do_move(&self.player1, &self.player2);
         if let BallMovementResult::MoveCollide(Collision::BorderCollision(border)) = &ball_change {
             if self.score.update(border) {
-                if let Some(winner) = &self.score.winner {
+                if let Some(_) = &self.score.winner {
                     self.ball.respawn();
                 } else {
                     self.ball.respawn();
