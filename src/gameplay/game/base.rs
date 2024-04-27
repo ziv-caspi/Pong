@@ -25,7 +25,7 @@ pub struct Game {
     countdown: Countdown,
     score: Score,
     fps_guard: FpsGuard,
-    unreported_actions: Vec<String>,
+    recent_actions: Vec<String>,
 }
 
 impl Game {
@@ -48,7 +48,7 @@ impl Game {
             ball: Ball::new(SCREEN_SIZE),
             countdown: Countdown::new(),
             fps_guard: FpsGuard::new(SERVER_FPS),
-            unreported_actions: vec![],
+            recent_actions: vec![],
         }
     }
 
@@ -72,10 +72,13 @@ impl Game {
             },
             countdown: self.countdown.current,
             score: self.score.clone(),
-            handled_actions: self.unreported_actions.clone(),
+            recent_handled_actions: self.recent_actions.clone(),
         };
 
-        self.unreported_actions.clear();
+        if self.recent_actions.len() > 1500 {
+            self.recent_actions.drain(0..300);
+        }
+         
         state
     }
 
@@ -104,7 +107,7 @@ impl Game {
             }
         }
 
-        self.unreported_actions.push(action_id.to_owned());
+        self.recent_actions.push(action_id.to_owned());
         Ok(self.get_state())
     }
 
@@ -133,8 +136,8 @@ impl Game {
                 if let Some(_) = &self.score.winner {
                     self.ball.respawn();
                 } else {
-                    self.ball.respawn();
-                    self.countdown.after_score();
+                    //self.ball.respawn();
+                    //self.countdown.after_score();
                 }
             }
         }

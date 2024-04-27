@@ -3,7 +3,7 @@ use super::{
     Player, PlayerWithScore, Score,
 };
 
-const WINNING_SCORE: u8 = 10;
+const WINNING_SCORE: u8 = 100;
 
 impl Score {
     pub fn new(left: Player, right: Player) -> Self {

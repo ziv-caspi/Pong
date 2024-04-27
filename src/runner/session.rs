@@ -29,7 +29,7 @@ enum ClientState {
     InMatch,
 }
 
-const FRAMES_TO_UPDATE: u8 = 20;
+const FRAMES_TO_UPDATE: u8 = 5;
 
 pub struct ClientSession<'a, TGameDatalayer> {
     id: Option<String>,
@@ -302,17 +302,34 @@ where
     }
 
     fn should_update_game_state(&mut self, new_state: &OnGameStateUpdate) -> bool {
+        // if self.skipped_frames < 10 {
+        //     self.skipped_frames += 1;
+        //     return false;
+        // } else {
+        //     self.skipped_frames = 0;
+        //     return true;
+        // }
+        
+        fn normalize(update: &mut OnGameStateUpdate) {
+            update.state.ball_pos.position = Position { x: 0, y: 0 };
+            update.state.player1_pos.position = Position { x: 0, y: 0 };
+            update.state.player2_pos.position = Position { x: 0, y: 0 };
+            update.timestamp_ms = 0;
+            update.state.recent_handled_actions = vec![];
+        }
+
         if let None = self.last_game_state {
+            self.last_game_state = Some(new_state.clone());
             return true;
         }
 
         // normalize values, we want to update on changes to anything except ball position
         let mut last = self.last_game_state.clone().unwrap();
-        last.state.ball_pos.position = Position { x: 0, y: 0 };
+        normalize(&mut last);
         let mut new = new_state.clone();
-        new.state.ball_pos.position = Position { x: 0, y: 0 };
+       normalize(&mut new);
 
-        if last == new && (self.skipped_frames as u32) < (FRAMES_TO_UPDATE as u32) * 10000 {
+        if self.skipped_frames < FRAMES_TO_UPDATE {
             self.skipped_frames += 1;
             return false;
         }

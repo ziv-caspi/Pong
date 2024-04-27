@@ -63,7 +63,7 @@ export type GameState = {
     ballPos: BallInfo,
     countdown: number,
     score: Score,
-    handledActions: string[],
+    recentHandledActions: string[],
 }
 
 export type Player = {

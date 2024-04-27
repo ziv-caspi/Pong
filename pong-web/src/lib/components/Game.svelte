@@ -9,6 +9,7 @@
     Dimensions,
     GameState,
     GameStateChange,
+    MovePlayerRequest,
     Movement,
     MovementVector,
     Position,
@@ -59,9 +60,13 @@
     state: InnerState;
     clientTimestamp: number;
   }[] = [];
+  let unackedActions: MovePlayerRequest[] = [];
 
   let framesInSec = 0;
   let startMs = Date.now();
+  let gotFirstUpdate = false;
+
+  let entityInterpolation: {state: InnerState, ts: number}[] = [];
 
   $: winner = (): "player" | "opponent" | undefined => {
     const calc = () => {
@@ -108,23 +113,50 @@
       if (winner()) return;
       const state = message.serverPushUpdate?.gameStateChange;
       if (!state) return;
+
+      const now = Date.now();
+      framesInSec += 1;
+      if (now - startMs >= 1000) {
+        console.log("server fps:", framesInSec);
+        framesInSec = 0;
+        startMs = now;
+      }
+
       console.log("lag:", Date.now() - state.timestampMs);
       console.log(
         "since last update:",
         state.timestampMs - lastServerTimestamp,
       );
+
+      let serverInnerState: InnerState = {...innerState}
       const positions = getPositions(state.state);
-      innerState.playerPosition = positions.player;
-      innerState.oponentPosition = positions.oponent;
-      innerState.ballPosition = state.state.ballPos.position;
-      innerState.ballRadius = state.state.ballPos.radius;
-      innerState.countdown = state.state.countdown;
-      innerState.playerDimensions = state.state.player1Pos.dimensions;
-      innerState.ballMovement = state.state.ballPos.movement;
-      innerState.score = state.state.score;
+      
+      // player prediction + reconcilliation
+      if (!gotFirstUpdate) {
+        serverInnerState.playerPosition = positions.player;
+        gotFirstUpdate = true;
+      } else {
+        unackedActions = unackedActions.filter(action => !state.state.recentHandledActions.includes(action.actionId));
+        console.log('unacked:', unackedActions.length);
+        applyLocalActions(serverInnerState, 'all');
+      }
+
+      // here entity interpolation is needed
+      //serverInnerState.oponentPosition = positions.oponent;
+      //serverInnerState.ballPosition = state.state.ballPos.position;
+      serverInnerState.ballMovement = state.state.ballPos.movement;
+
+      serverInnerState.ballRadius = state.state.ballPos.radius;
+      serverInnerState.countdown = state.state.countdown;
+      serverInnerState.playerDimensions = state.state.player1Pos.dimensions;
+      serverInnerState.score = state.state.score;
       lastServerTimestamp = state.timestampMs;
-      console.log("ballMovement", innerState.ballMovement);
-      reCalculateStateOnServerUpdate(lastServerTimestamp, innerState);
+      
+      entityInterpolation.push({state: {...serverInnerState, oponentPosition: positions.oponent, ballPosition: state.state.ballPos.position}, ts: Date.now()})
+      // apply after entityInterpolation
+      innerState = serverInnerState;
+
+      //reCalculateStateOnServerUpdate(lastServerTimestamp, serverInnerState);
     });
 
     callbackGameLoop((state) => {
@@ -140,22 +172,57 @@
 
   function handleFrame() {
     if (winner()) return;
+    // const newState = clientStateCalculation(innerState);
+    // innerState.ballPosition = newState.ballPosititon;
+    // innerState.ballMovement = newState.ballMovement;
 
-    const now = Date.now();
-    framesInSec += 1;
-    if (now - startMs >= 1000) {
-      console.log("fps:", framesInSec);
-      framesInSec = 0;
-      startMs = now;
+    const render_timestamp = Date.now() - (1000.0 / framesInSec);
+    // Drop older positions.
+    console.log('interpolation length', entityInterpolation.length)
+    while (entityInterpolation.length >= 2 && entityInterpolation[1].ts <= render_timestamp) {
+      entityInterpolation.shift();
     }
-    const newState = clientStateCalculation(innerState);
-    innerState.ballPosition = newState.ballPosititon;
-    innerState.ballMovement = newState.ballMovement;
+    // Interpolate between the two surrounding authoritative positions.
+    if (entityInterpolation.length >= 2 && entityInterpolation[0].ts <= render_timestamp && render_timestamp <= entityInterpolation[1].ts) {
+      const a = entityInterpolation[0];
+      const b = entityInterpolation[1];
+      // entityInterpolation.shift();
+      // entityInterpolation.shift();
+      function interpolation(x0: number, x1: number, t0: number, t1: number, now: number) {
+        return x0 + (x1 - x0) * (now - t0) / (t1 - t0);
+      }
+      const y = interpolation(a.state.oponentPosition.y, b.state.oponentPosition.y, a.ts, b.ts, render_timestamp);
+      innerState.oponentPosition.y = y;
+      const x = interpolation(a.state.oponentPosition.x, b.state.oponentPosition.x, a.ts, b.ts, render_timestamp);
+      innerState.oponentPosition.x = x;
+      console.log('interpolation oponent', x, y)
 
-    lastFrames.push({
-      state: { ...innerState },
-      clientTimestamp: Date.now(),
-    });
+      const bx = interpolation(a.state.ballPosition.x, b.state.ballPosition.x, a.ts, b.ts, render_timestamp)
+      const by = interpolation(a.state.ballPosition.y, b.state.ballPosition.y, a.ts, b.ts, render_timestamp)
+      innerState.ballPosition.x = bx;
+      innerState.ballPosition.y = by;
+    } else {
+      //console.log('interpolation skipped'); 
+      // innerState.ballPosition.x += innerState.ballMovement.horizontalVector;
+      // innerState.ballPosition.y += innerState.ballMovement.verticalVector;
+    }
+
+    // if (entityInterpolation.length >= 2) {
+    //   const a = entityInterpolation[0];
+    //   const b = entityInterpolation[1];
+    //   entityInterpolation.shift();
+    //   entityInterpolation.shift();
+    //   function interpolation(x0: number, x1: number, t0: number, t1: number, now: number) {
+    //     return x0 + (x1 - x0) * (now - t0) / (t1 - t0);
+    //   }
+    //   const y = interpolation(a.state.oponentPosition.y, b.state.oponentPosition.y, a.ts, b.ts, Date.now() - (1000.0 / 60));
+    //   innerState.oponentPosition.y = y;
+    //   const x = interpolation(a.state.oponentPosition.x, b.state.oponentPosition.x, a.ts, b.ts, Date.now() - (1000.0 / 60));
+    //   innerState.oponentPosition.x = x;
+    //   console.log('interpolation oponent', x, y)
+    // } else {
+    //   console.log('interpolation skipped'); 
+    // }
 
     if (innerState.movement != "none") {
       let yDelta = 10;
@@ -163,12 +230,50 @@
         yDelta *= -1;
       }
       const actionId = uuidv4();
+      const request = { matchId, yDelta, actionId };
+      unackedActions.push(request);
+      const newPlayer = applyLocalActions(innerState, 'last');
+      innerState.playerPosition = newPlayer;
+
       SendUserMessageWithoutResponses(ws, {
-        movePlayerRequest: { matchId, yDelta, actionId },
+        movePlayerRequest: request,
       });
     }
 
+    lastFrames.push({
+      state: { ...innerState },
+      clientTimestamp: Date.now(),
+    });
+
+    
+
     requestAnimationFrame(handleFrame);
+  }
+
+  function applyLocalActions(state: InnerState, mode: 'all' | 'last') : Position {
+    let position = {...state.playerPosition};
+    if (mode == 'all') {
+      for (const action of unackedActions) {
+        // let newy = position.y + action.yDelta;
+        // if (newy < 0) newy = 0;
+        // if (newy + innerState.playerDimensions[1] > innerState.canvasDimension[1]) newy = innerState.canvasDimension[1] - innerState.playerDimensions[1];
+
+        // position.y = newy;
+        position.y += action.yDelta;
+      }
+    } else if (mode == 'last') {
+      const last = unackedActions.findLast(_ => true);
+      if (last) {
+        // let newy = position.y + last.yDelta;
+        // if (newy < 0) newy = 0;
+        // if (newy + innerState.playerDimensions[1] > innerState.canvasDimension[1]) newy = innerState.canvasDimension[1] - innerState.playerDimensions[1];
+
+        // position.y = newy;
+        position.y += last.yDelta;
+      }
+    }
+
+    return position;
   }
 
   function clientStateCalculation(state: InnerState): {
@@ -229,9 +334,12 @@
     );
     if (filtered.length == 0) return;
 
+    const last = {...lastFrames[lastFrames.length-1]};
+
     const closest = filtered.sort(
       (a, b) => a.clientTimestamp - b.clientTimestamp,
     )[0];
+    console.log(`closest and server: timestamp diff ${closest.clientTimestamp-serverTimestamp}, x diff ${closest.state.ballPosition.x-serverState.ballPosition.x}, y diff: ${closest.state.ballPosition.x-serverState.ballPosition.y}`)
     const index = lastFrames.indexOf(closest);
 
     for (let i = index; i < lastFrames.length; i++) {
@@ -246,7 +354,14 @@
       frame.state.ballPosition = newState.ballPosititon;
       frame.state.ballMovement = newState.ballMovement;
     }
-    lastFrames = [];
+    const newLast = lastFrames[lastFrames.length-1];
+    
+    //const newPlayer = applyLocalActions(last.state, 'all');
+    //innerState.playerPosition = newPlayer;
+
+    
+    innerState = JSON.parse(JSON.stringify(newLast.state));
+    lastFrames = []; // could be causingg the bug
   }
 
   function getPositions(state: GameState): {

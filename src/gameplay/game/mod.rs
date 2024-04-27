@@ -12,7 +12,7 @@ use serde_derive::{Deserialize, Serialize};
 
 pub struct Player {
     id: String,
-    position: Position,
+    pub position: Position,
     dimensions: (u32, u32),
 }
 
@@ -51,7 +51,7 @@ pub struct GameState {
     pub ball_pos: BallInfo,
     pub countdown: u8,
     pub score: Score,
-    pub handled_actions: Vec<String>,
+    pub recent_handled_actions: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

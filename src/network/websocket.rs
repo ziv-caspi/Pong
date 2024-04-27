@@ -12,7 +12,7 @@ use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
 use std::{
     net::TcpStream,
     sync::{Arc, Mutex},
-    thread,
+    thread, time::Duration,
 };
 use websocket::{
     sync::{server::Server, Client, Reader, Writer},
@@ -116,6 +116,7 @@ fn handle_connection(
                 let json = serde_json::to_string(&response)?;
                 if let ServerMessage::ServerPushUpdate(push) = response {
                     if let Some(_) = push {
+                        //thread::sleep(Duration::from_millis(400));
                         writer.send_message(&Message::text(json))?;
                     }
                 }

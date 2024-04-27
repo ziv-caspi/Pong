@@ -6,7 +6,7 @@ use std::{
 use rand::{rngs::ThreadRng, Rng};
 
 use super::{Player, Position};
-const INITIAL_SPEED: u32 = 4;
+const INITIAL_SPEED: u32 = 10;
 const MAX_SPEED: u32 = 30;
 
 #[derive(Eq, PartialEq, PartialOrd, Ord)]
