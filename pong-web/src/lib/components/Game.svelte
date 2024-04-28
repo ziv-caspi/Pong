@@ -138,7 +138,9 @@
       } else {
         unackedActions = unackedActions.filter(action => !state.state.recentHandledActions.includes(action.actionId));
         console.log('unacked:', unackedActions.length);
-        applyLocalActions(serverInnerState, 'all');
+        for (const action of unackedActions) {
+          serverInnerState.playerPosition.y += action.yDelta;
+        }
       }
 
       // here entity interpolation is needed
@@ -231,13 +233,9 @@
       }
       const actionId = uuidv4();
       const request = { matchId, yDelta, actionId };
-      unackedActions.push(request);
-      const newPlayer = applyLocalActions(innerState, 'last');
-      innerState.playerPosition = newPlayer;
-
-      SendUserMessageWithoutResponses(ws, {
-        movePlayerRequest: request,
-      });
+      
+      const newPlayer = applyLocalAction(innerState, request);
+      if (newPlayer) innerState.playerPosition = newPlayer;
     }
 
     lastFrames.push({
@@ -250,29 +248,18 @@
     requestAnimationFrame(handleFrame);
   }
 
-  function applyLocalActions(state: InnerState, mode: 'all' | 'last') : Position {
+  function applyLocalAction(state: InnerState, action: MovePlayerRequest) : Position | undefined {
     let position = {...state.playerPosition};
-    if (mode == 'all') {
-      for (const action of unackedActions) {
-        // let newy = position.y + action.yDelta;
-        // if (newy < 0) newy = 0;
-        // if (newy + innerState.playerDimensions[1] > innerState.canvasDimension[1]) newy = innerState.canvasDimension[1] - innerState.playerDimensions[1];
+    let targetY = position.y + action.yDelta;
+    if (targetY < 0) return undefined;
+    if (targetY + state.playerDimensions[1] > state.canvasDimension[1]) return undefined;
 
-        // position.y = newy;
-        position.y += action.yDelta;
-      }
-    } else if (mode == 'last') {
-      const last = unackedActions.findLast(_ => true);
-      if (last) {
-        // let newy = position.y + last.yDelta;
-        // if (newy < 0) newy = 0;
-        // if (newy + innerState.playerDimensions[1] > innerState.canvasDimension[1]) newy = innerState.canvasDimension[1] - innerState.playerDimensions[1];
-
-        // position.y = newy;
-        position.y += last.yDelta;
-      }
-    }
-
+    position.y = targetY;
+    
+    unackedActions.push(action);
+    SendUserMessageWithoutResponses(ws, {
+        movePlayerRequest: action,
+      });
     return position;
   }
 
