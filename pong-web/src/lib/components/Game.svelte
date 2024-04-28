@@ -176,7 +176,7 @@
     // innerState.ballPosition = newState.ballPosititon;
     // innerState.ballMovement = newState.ballMovement;
 
-    const render_timestamp = Date.now() - (1000.0 / framesInSec);
+    const render_timestamp = Date.now() - 1000/20;
     // Drop older positions.
     console.log('interpolation length', entityInterpolation.length)
     while (entityInterpolation.length >= 2 && entityInterpolation[1].ts <= render_timestamp) {

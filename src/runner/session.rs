@@ -29,7 +29,7 @@ enum ClientState {
     InMatch,
 }
 
-const FRAMES_TO_UPDATE: u8 = 5;
+const FRAMES_TO_UPDATE: u8 = 2;
 
 pub struct ClientSession<'a, TGameDatalayer> {
     id: Option<String>,
