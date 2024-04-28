@@ -16,7 +16,8 @@ const PLAYER_START_X: u32 = SCREEN_SIZE.0 / 8;
 const PLAYER1_START_X: u32 = PLAYER_START_X;
 const PLAYER2_START_X: u32 = SCREEN_SIZE.0 - PLAYER_START_X;
 
-const SERVER_FPS: u8 = 60;
+const SIMULATED_SERVER_FPS: u8 = 60;
+const ACTUAL_SERVER_FPS: u8 = 20; // run 20 times in a sec, but all speed and actions are relative to 60 fps.
 
 struct MovePlayerCommand {
     player_id: String,
@@ -58,7 +59,7 @@ impl Game {
             player2,
             ball: Ball::new(SCREEN_SIZE),
             countdown: Countdown::new(),
-            fps_guard: FpsGuard::new(SERVER_FPS),
+            fps_guard: FpsGuard::new(20, SIMULATED_SERVER_FPS),
             recent_actions: vec![],
             pending_actions_reciever: rx,
             pending_actions_sender: tx,
@@ -138,8 +139,10 @@ impl Game {
     }
 
     pub fn tick(&mut self) -> Option<GameState> {
+        let frames_factor: u8;
         match self.fps_guard.guard() {
-            FpsResult::Run(report) => {
+            FpsResult::Run(runs, report) => {
+                frames_factor = runs;
                 if let Some(fps) = report {
                     println!("FPS: {}", fps);
                 }
@@ -162,7 +165,6 @@ impl Game {
             }
         }
 
-
         let count_change = self.countdown.count();
         if count_change {
             return Some(self.get_state());
@@ -172,23 +174,21 @@ impl Game {
             return None;
         }
 
-        let ball_change = self.ball.do_move(&self.player1, &self.player2);
-        if let BallMovementResult::MoveCollide(Collision::BorderCollision(border)) = &ball_change {
-            if self.score.update(border) {
-                if let Some(_) = &self.score.winner {
-                    self.ball.respawn();
-                } else {
-                    //self.ball.respawn();
-                    //self.countdown.after_score();
+        for _ in 0..frames_factor {
+            let ball_change = self.ball.do_move(&self.player1, &self.player2);
+            if let BallMovementResult::MoveCollide(Collision::BorderCollision(border)) = &ball_change {
+                if self.score.update(border) {
+                    if let Some(_) = &self.score.winner {
+                        self.ball.respawn();
+                    } else {
+                        //self.ball.respawn();
+                        //self.countdown.after_score();
+                    }
                 }
             }
         }
 
-        if let BallMovementResult::Move = ball_change {
-            return Some(self.get_state());
-        } else {
-            return None;
-        }
+        Some(self.get_state())
     }
 
     fn get_player_by_id(&mut self, id: &str) -> Result<&mut Player> {

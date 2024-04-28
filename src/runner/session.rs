@@ -302,6 +302,8 @@ where
     }
 
     fn should_update_game_state(&mut self, new_state: &OnGameStateUpdate) -> bool {
+        return true;
+
         // if self.skipped_frames < 10 {
         //     self.skipped_frames += 1;
         //     return false;
