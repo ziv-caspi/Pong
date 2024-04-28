@@ -1,4 +1,5 @@
 use anyhow::{bail, Result};
+use crossbeam::channel::{unbounded, Receiver, Sender};
 
 use super::{
     ball::{Ball, BallMovementResult, Collision},
@@ -17,6 +18,13 @@ const PLAYER2_START_X: u32 = SCREEN_SIZE.0 - PLAYER_START_X;
 
 const SERVER_FPS: u8 = 60;
 
+struct MovePlayerCommand {
+    player_id: String,
+    delta: u32,
+    up: bool,
+    action_id: String
+}
+
 pub struct Game {
     pub match_id: String,
     player1: Player,
@@ -25,7 +33,9 @@ pub struct Game {
     countdown: Countdown,
     score: Score,
     fps_guard: FpsGuard,
-    recent_actions: Vec<String>,
+    recent_actions: Vec<String>, // TODO: can be heavily optimized
+    pending_actions_reciever: Receiver<MovePlayerCommand>,
+    pending_actions_sender: Sender<MovePlayerCommand>,
 }
 
 impl Game {
@@ -40,6 +50,7 @@ impl Game {
             position: Position { x: PLAYER2_START_X, y: PLAYER_START_Y },
             dimensions: PLAYER_SIZE,
         };
+        let (tx, rx) = unbounded();
         Self {
             score: Score::new(player1.clone(), player2.clone()),
             match_id,
@@ -49,6 +60,8 @@ impl Game {
             countdown: Countdown::new(),
             fps_guard: FpsGuard::new(SERVER_FPS),
             recent_actions: vec![],
+            pending_actions_reciever: rx,
+            pending_actions_sender: tx,
         }
     }
 
@@ -82,13 +95,26 @@ impl Game {
         state
     }
 
-    pub fn move_player(
+    pub fn move_player(&mut self,
+        player_id: &str,
+        delta: u32,
+        up: bool,
+        action_id: &str) {
+        _ = self.pending_actions_sender.send(MovePlayerCommand {
+            player_id: player_id.to_owned(),
+            delta, 
+            up, 
+            action_id: action_id.to_owned()
+        });
+    }
+
+    fn inner_move_player(
         &mut self,
         player_id: &str,
         delta: u32,
         up: bool,
         action_id: &str,
-    ) -> Result<GameState> {
+    ) -> Result<()> {
         let player = self.get_player_by_id(player_id)?;
 
         if up {
@@ -108,7 +134,7 @@ impl Game {
         }
 
         self.recent_actions.push(action_id.to_owned());
-        Ok(self.get_state())
+        Ok(())
     }
 
     pub fn tick(&mut self) -> Option<GameState> {
@@ -120,6 +146,22 @@ impl Game {
             }
             FpsResult::Skip => return None,
         }
+
+        let to_read = self.pending_actions_reciever.len();
+        let mut read: usize = 0;
+        loop {
+            if read >= to_read {
+                break;
+            }
+
+            if let Ok(msg) = self.pending_actions_reciever.try_recv() {
+                _ = self.inner_move_player(&msg.player_id, msg.delta, msg.up, &msg.action_id);
+                read += 1;
+            } else {
+                break;
+            }
+        }
+
 
         let count_change = self.countdown.count();
         if count_change {

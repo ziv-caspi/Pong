@@ -57,12 +57,8 @@ impl GameDatalayer for MemoryGameDatalayer {
             up = false;
         }
 
-        let state = game.move_player(player_id, normalized, up, action_id)?;
-        self.on_game_update.invoke(OnGameStateUpdate {
-            id: match_id.to_owned(),
-            state: state,
-            timestamp_ms: get_time(),
-        });
+        game.move_player(player_id, normalized, up, action_id);
+        
         Ok(())
     }
 
