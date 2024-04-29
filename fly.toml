@@ -4,7 +4,7 @@
 #
 
 app = 'pongv2'
-primary_region = 'eze'
+primary_region = 'mad'
 
 [build]
 
