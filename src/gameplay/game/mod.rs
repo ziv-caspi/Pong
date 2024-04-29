@@ -1,6 +1,7 @@
 mod ball;
 pub mod base;
 mod countdown;
+mod fps_guard;
 mod score;
 
 use serde_derive::{Deserialize, Serialize};
@@ -44,13 +45,13 @@ pub struct MovementVector {
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[derive(Clone, PartialEq, Eq)]
-
 pub struct GameState {
     pub player1_pos: Player,
     pub player2_pos: Player,
     pub ball_pos: BallInfo,
     pub countdown: u8,
     pub score: Score,
+    pub handled_actions: Vec<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

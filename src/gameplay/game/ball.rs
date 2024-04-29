@@ -65,6 +65,7 @@ impl Ball {
     }
 
     pub fn respawn(&mut self) {
+        self.speed = 0;
         let mut rand = rand::thread_rng();
         self.position.x = self.screen_size.0 / 2;
         let y = rand.gen_range(100..self.screen_size.1 - 100);

@@ -1,9 +1,9 @@
 use anyhow::{bail, Result};
-use std::time::Instant;
 
 use super::{
     ball::{Ball, BallMovementResult, Collision},
     countdown::Countdown,
+    fps_guard::{FpsGuard, FpsResult},
     GameState, Player, Position, Score,
 };
 
@@ -15,8 +15,7 @@ const PLAYER_START_X: u32 = SCREEN_SIZE.0 / 8;
 const PLAYER1_START_X: u32 = PLAYER_START_X;
 const PLAYER2_START_X: u32 = SCREEN_SIZE.0 - PLAYER_START_X;
 
-const SERVER_FPS: u128 = 60;
-const MILLIS_BETWEEN_FRAMES: u128 = 1000 / SERVER_FPS;
+const SERVER_FPS: u8 = 60;
 
 pub struct Game {
     pub match_id: String,
@@ -25,9 +24,8 @@ pub struct Game {
     ball: Ball,
     countdown: Countdown,
     score: Score,
-    last_frame: Instant,
-    second_start: Instant,
-    fps: u128,
+    fps_guard: FpsGuard,
+    unreported_actions: Vec<String>,
 }
 
 impl Game {
@@ -49,13 +47,12 @@ impl Game {
             player2,
             ball: Ball::new(SCREEN_SIZE),
             countdown: Countdown::new(),
-            last_frame: Instant::now(),
-            second_start: Instant::now(),
-            fps: 0,
+            fps_guard: FpsGuard::new(SERVER_FPS),
+            unreported_actions: vec![],
         }
     }
 
-    pub fn get_state(&self) -> GameState {
+    pub fn get_state(&mut self) -> GameState {
         let mut horizontal_vector = self.ball.speed as i32;
         let mut vertical_vector = self.ball.speed as i32;
         if !self.ball.is_right {
@@ -65,7 +62,7 @@ impl Game {
             vertical_vector *= -1;
         }
 
-        GameState {
+        let state = GameState {
             player1_pos: self.player1.clone(),
             player2_pos: self.player2.clone(),
             ball_pos: super::BallInfo {
@@ -75,10 +72,20 @@ impl Game {
             },
             countdown: self.countdown.current,
             score: self.score.clone(),
-        }
+            handled_actions: self.unreported_actions.clone(),
+        };
+
+        self.unreported_actions.clear();
+        state
     }
 
-    pub fn move_player(&mut self, player_id: &str, delta: u32, up: bool) -> Result<GameState> {
+    pub fn move_player(
+        &mut self,
+        player_id: &str,
+        delta: u32,
+        up: bool,
+        action_id: &str,
+    ) -> Result<GameState> {
         let player = self.get_player_by_id(player_id)?;
 
         if up {
@@ -97,22 +104,18 @@ impl Game {
             }
         }
 
+        self.unreported_actions.push(action_id.to_owned());
         Ok(self.get_state())
     }
 
     pub fn tick(&mut self) -> Option<GameState> {
-        let diff = self.last_frame.elapsed().as_millis();
-        if diff < MILLIS_BETWEEN_FRAMES {
-            return None;
-        } else {
-            self.last_frame += self.last_frame.elapsed();
-        }
-
-        self.fps += 1;
-        if self.second_start.elapsed().as_millis() >= 1000 {
-            println!("FPS: {}", self.fps);
-            self.fps = 0;
-            self.second_start += self.second_start.elapsed();
+        match self.fps_guard.guard() {
+            FpsResult::Run(report) => {
+                if let Some(fps) = report {
+                    println!("FPS: {}", fps);
+                }
+            }
+            FpsResult::Skip => return None,
         }
 
         let count_change = self.countdown.count();
@@ -127,12 +130,11 @@ impl Game {
         let ball_change = self.ball.do_move(&self.player1, &self.player2);
         if let BallMovementResult::MoveCollide(Collision::BorderCollision(border)) = &ball_change {
             if self.score.update(border) {
-                if let Some(winner) = &self.score.winner {
+                if let Some(_) = &self.score.winner {
                     self.ball.respawn();
-                    self.ball.speed = 0;
                 } else {
                     self.ball.respawn();
-                    //self.countdown.after_score();
+                    self.countdown.after_score();
                 }
             }
         }

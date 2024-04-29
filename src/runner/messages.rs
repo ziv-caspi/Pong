@@ -45,6 +45,7 @@ pub struct JoinLobbyRequest {
 pub struct MovePlayerRequest {
     pub match_id: String,
     pub y_delta: i32,
+    pub action_id: String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

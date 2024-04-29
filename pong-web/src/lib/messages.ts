@@ -63,6 +63,7 @@ export type GameState = {
     ballPos: BallInfo,
     countdown: number,
     score: Score,
+    handledActions: string[],
 }
 
 export type Player = {
@@ -74,6 +75,7 @@ export type Player = {
 export type MovePlayerRequest = {
     matchId: string,
     yDelta: number,
+    actionId: string,
 }
 
 export type Position = { x: number; y: number };
