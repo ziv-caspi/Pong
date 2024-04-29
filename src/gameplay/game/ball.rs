@@ -6,8 +6,8 @@ use std::{
 use rand::{rngs::ThreadRng, Rng};
 
 use super::{Player, Position};
-const INITIAL_SPEED: u32 = 10;
-const MAX_SPEED: u32 = 30;
+const INITIAL_SPEED: u32 = 5;
+const MAX_SPEED: u32 = 10;
 
 #[derive(Eq, PartialEq, PartialOrd, Ord)]
 pub enum BallMovementResult {
@@ -61,7 +61,15 @@ impl Ball {
 
         let v_res = self.vertical_move();
         let h_res = self.horizontal_move(left_player, right_player);
-        max(v_res, h_res) // returns dominant event
+        let max = max(v_res, h_res); // returns dominant event
+        if let BallMovementResult::MoveCollide(Collision::PlayerCollision(_)) = max {
+            self.speed += 1;
+            if self.speed > MAX_SPEED {
+                self.speed = MAX_SPEED;
+            }
+        }
+
+        max
     }
 
     pub fn respawn(&mut self) {

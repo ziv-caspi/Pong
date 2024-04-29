@@ -133,16 +133,17 @@
         gotFirstUpdate = true;
       } else {
         unackedActions = unackedActions.filter(action => !state.state.recentHandledActions.includes(action.actionId));
+        serverInnerState.playerPosition = positions.player;
         for (const action of unackedActions) {
-          serverInnerState.playerPosition.y += action.yDelta;
+          const newp = applyLocalAction(serverInnerState, action);
+          if (newp) serverInnerState.playerPosition = newp;
         }
       }
 
       // here entity interpolation is needed
       //serverInnerState.oponentPosition = positions.oponent;
-      //serverInnerState.ballPosition = state.state.ballPos.position;
+      // serverInnerState.ballPosition = state.state.ballPos.position;
       serverInnerState.ballMovement = state.state.ballPos.movement;
-
       serverInnerState.ballRadius = state.state.ballPos.radius;
       serverInnerState.countdown = state.state.countdown;
       serverInnerState.playerDimensions = state.state.player1Pos.dimensions;
@@ -150,10 +151,7 @@
       lastServerTimestamp = state.timestampMs;
       
       entityInterpolation.push({state: {...serverInnerState, oponentPosition: positions.oponent, ballPosition: state.state.ballPos.position}, ts: Date.now()})
-      // apply after entityInterpolation
       innerState = serverInnerState;
-
-      //reCalculateStateOnServerUpdate(lastServerTimestamp, serverInnerState);
     });
 
     callbackGameLoop((state) => {
@@ -169,11 +167,8 @@
 
   function handleFrame() {
     if (winner()) return;
-    // const newState = clientStateCalculation(innerState);
-    // innerState.ballPosition = newState.ballPosititon;
-    // innerState.ballMovement = newState.ballMovement;
-
-    const render_timestamp = Date.now() - 1000/20;
+    
+    const render_timestamp = Date.now() - 1000/25;
     // Drop older positions.
     while (entityInterpolation.length >= 2 && entityInterpolation[1].ts <= render_timestamp) {
       entityInterpolation.shift();
@@ -182,8 +177,6 @@
     if (entityInterpolation.length >= 2 && entityInterpolation[0].ts <= render_timestamp && render_timestamp <= entityInterpolation[1].ts) {
       const a = entityInterpolation[0];
       const b = entityInterpolation[1];
-      // entityInterpolation.shift();
-      // entityInterpolation.shift();
       function interpolation(x0: number, x1: number, t0: number, t1: number, now: number) {
         return x0 + (x1 - x0) * (now - t0) / (t1 - t0);
       }
@@ -198,26 +191,13 @@
       innerState.ballPosition.y = by;
     } else {
       console.log('interpolation skipped'); 
-      // innerState.ballPosition.x += innerState.ballMovement.horizontalVector;
-      // innerState.ballPosition.y += innerState.ballMovement.verticalVector;
     }
 
-    // if (entityInterpolation.length >= 2) {
-    //   const a = entityInterpolation[0];
-    //   const b = entityInterpolation[1];
-    //   entityInterpolation.shift();
-    //   entityInterpolation.shift();
-    //   function interpolation(x0: number, x1: number, t0: number, t1: number, now: number) {
-    //     return x0 + (x1 - x0) * (now - t0) / (t1 - t0);
-    //   }
-    //   const y = interpolation(a.state.oponentPosition.y, b.state.oponentPosition.y, a.ts, b.ts, Date.now() - (1000.0 / 60));
-    //   innerState.oponentPosition.y = y;
-    //   const x = interpolation(a.state.oponentPosition.x, b.state.oponentPosition.x, a.ts, b.ts, Date.now() - (1000.0 / 60));
-    //   innerState.oponentPosition.x = x;
-    //   console.log('interpolation oponent', x, y)
-    // } else {
-    //   console.log('interpolation skipped'); 
-    // }
+    // ball is completing the animation on its own
+    // const newState = ballClientStateCalculation(innerState);
+    // innerState.ballPosition = newState.ballPosititon;
+    // innerState.ballMovement = newState.ballMovement;s
+
 
     if (innerState.movement != "none") {
       let yDelta = 10;
@@ -227,25 +207,27 @@
       const actionId = uuidv4();
       const request = { matchId, yDelta, actionId };
       
-      const newPlayer = applyLocalAction(innerState, request);
+      const newPlayer = applyLocalAction(innerState, request, true);
       if (newPlayer) innerState.playerPosition = newPlayer;
     }
 
     requestAnimationFrame(handleFrame);
   }
 
-  function applyLocalAction(state: InnerState, action: MovePlayerRequest) : Position | undefined {
+  function applyLocalAction(state: InnerState, action: MovePlayerRequest, report: boolean = false) : Position | undefined {
     let position = {...state.playerPosition};
     let targetY = position.y + action.yDelta;
     if (targetY < 0) return undefined;
-    if (targetY + state.playerDimensions[1] > state.canvasDimension[1]) return undefined;
+    //if (targetY + state.playerDimensions[1] > state.canvasDimension[1]) return undefined;
 
     position.y = targetY;
     
-    unackedActions.push(action);
-    SendUserMessageWithoutResponses(ws, {
-        movePlayerRequest: action,
-      });
+    if (report) {
+      unackedActions.push(action);
+      SendUserMessageWithoutResponses(ws, {
+          movePlayerRequest: action,
+        });
+    }
     return position;
   }
 
@@ -265,6 +247,52 @@
       };
     }
   }
+
+  function ballClientStateCalculation(state: InnerState): {
+    ballPosititon: Position;
+    ballMovement: MovementVector;
+  } {
+    let newBallMovement = { ...state.ballMovement };
+    if (
+      state.ballPosition.y + innerState.ballRadius >=
+        innerState.canvasDimension[1] ||
+      state.ballPosition.y - innerState.ballRadius <= 0
+    ) {
+      newBallMovement.verticalVector *= -1;
+    }
+
+    const [left, right] = [state.playerPosition, state.oponentPosition].sort(
+      (a, b) => a.x - b.x,
+    );
+
+    const rightPlayerCollision =
+      newBallMovement.horizontalVector > 0 &&
+      state.ballPosition.x + innerState.ballRadius >= right.x &&
+      state.ballPosition.x <= right.x + innerState.playerDimensions[0] &&
+      state.ballPosition.y + innerState.ballRadius >= right.y &&
+      state.ballPosition.y <= right.y + innerState.playerDimensions[1];
+
+    const leftPlayerCOllision =
+      newBallMovement.horizontalVector < 0 &&
+      state.ballPosition.x - innerState.ballRadius <= left.x &&
+      state.ballPosition.x >= left.x + innerState.playerDimensions[0] &&
+      state.ballPosition.y + innerState.ballRadius >= left.y &&
+      state.ballPosition.y <= left.y + innerState.playerDimensions[1];
+
+    if (rightPlayerCollision || leftPlayerCOllision) {
+      newBallMovement.horizontalVector *= -1;
+    }
+
+    const x = state.ballPosition.x + newBallMovement.horizontalVector;
+    const y = state.ballPosition.y + newBallMovement.verticalVector;
+    const newBallPosition: Position = {
+      x: x,
+      y: y >= 0 ? y : 0,
+    };
+
+    return { ballPosititon: newBallPosition, ballMovement: newBallMovement };
+  }
+
 </script>
 
 <div class="flex flex-row gap-x-80 font-bold text-lg">

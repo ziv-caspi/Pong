@@ -17,7 +17,7 @@ const PLAYER1_START_X: u32 = PLAYER_START_X;
 const PLAYER2_START_X: u32 = SCREEN_SIZE.0 - PLAYER_START_X;
 
 const SIMULATED_SERVER_FPS: u8 = 60;
-const ACTUAL_SERVER_FPS: u8 = 20; // run 20 times in a sec, but all speed and actions are relative to 60 fps.
+const ACTUAL_SERVER_FPS: u8 = 25;
 
 struct MovePlayerCommand {
     player_id: String,
@@ -59,7 +59,7 @@ impl Game {
             player2,
             ball: Ball::new(SCREEN_SIZE),
             countdown: Countdown::new(),
-            fps_guard: FpsGuard::new(20, SIMULATED_SERVER_FPS),
+            fps_guard: FpsGuard::new(ACTUAL_SERVER_FPS, SIMULATED_SERVER_FPS),
             recent_actions: vec![],
             pending_actions_reciever: rx,
             pending_actions_sender: tx,
@@ -165,13 +165,9 @@ impl Game {
             }
         }
 
-        let count_change = self.countdown.count();
-        if count_change {
-            return Some(self.get_state());
-        }
-
+        self.countdown.count();
         if self.countdown.current != 0 {
-            return None;
+            return Some(self.get_state());
         }
 
         for _ in 0..frames_factor {
@@ -180,9 +176,11 @@ impl Game {
                 if self.score.update(border) {
                     if let Some(_) = &self.score.winner {
                         self.ball.respawn();
+                        break;
                     } else {
-                        //self.ball.respawn();
-                        //self.countdown.after_score();
+                        self.ball.respawn();
+                        self.countdown.after_score();
+                        break;
                     }
                 }
             }
